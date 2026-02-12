@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm uninstall tailwindcss @tailwindcss/postcss)",
+      "Bash(npm install -D tailwindcss@3)",
+      "Bash(npm run build)",
+      "Bash(PORT=3006 npm start)",
+      "Bash(npm test -- --watch=false)",
+      "Bash(curl -s http://localhost:3006)",
+      "Bash(npm install react-router-dom)"
+    ]
+  }
+}
