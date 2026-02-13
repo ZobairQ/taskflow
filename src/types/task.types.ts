@@ -6,6 +6,19 @@
 export type TaskPriority = 'low' | 'medium' | 'high';
 export type TaskStatus = 'pending' | 'in_progress' | 'completed';
 
+export interface Subtask {
+  id: number;
+  text: string;
+  completed: boolean;
+  createdAt: number;
+}
+
+export interface NotificationSettings {
+  enabled: boolean;
+  timing: number[]; // Minutes before due date (e.g., [15, 60, 1440] for 15min, 1hr, 24hr)
+  type: 'browser' | 'in-app' | 'both';
+}
+
 export interface Task {
   id: number;
   text: string;
@@ -18,6 +31,8 @@ export interface Task {
   createdAt: number;
   completedAt?: number;
   startedAt?: number; // When task was marked as in_progress
+  subtasks?: Subtask[]; // Checklist items
+  notificationSettings?: NotificationSettings;
 }
 
 // Backward compatibility: Export as Todo for gradual migration

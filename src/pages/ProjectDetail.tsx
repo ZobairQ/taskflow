@@ -112,6 +112,20 @@ export default function ProjectDetail() {
     }
   };
 
+  const editTodo = (id: number, updates: Partial<Task>) => {
+    if (!project) return;
+    const todo = todos.find((t) => t.id === id);
+    if (!todo) return;
+
+    const updatedTodo = {
+      ...todo,
+      ...updates,
+    };
+
+    updateTodoInProject(project.id, updatedTodo);
+    setTodos((prev) => prev.map((t) => (t.id === id ? updatedTodo : t)));
+  };
+
   const deleteTodo = (id: number) => {
     if (!project) return;
     deleteTodoFromProject(project.id, id);
@@ -403,6 +417,7 @@ export default function ProjectDetail() {
             onClose={() => setSelectedTask(null)}
             onToggleComplete={toggleTodo}
             onDelete={deleteTodo}
+            onEdit={editTodo}
           />
         )}
       </div>

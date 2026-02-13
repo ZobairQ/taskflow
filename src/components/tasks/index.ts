@@ -7,3 +7,4 @@ export * from './TaskList';
 export * from './AddTaskForm';
 export * from './TaskFilters';
 export * from './TaskGroup';
+export * from './SubtaskList';

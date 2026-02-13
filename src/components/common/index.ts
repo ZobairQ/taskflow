@@ -6,3 +6,4 @@ export * from './PriorityBadge';
 export * from './CategoryBadge';
 export * from './ProgressBar';
 export * from './StatCard';
+export * from './NotificationSettings';

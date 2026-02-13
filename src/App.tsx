@@ -135,6 +135,20 @@ function App() {
     setTodos(todos.filter((todo) => todo.id !== id));
   };
 
+  const editTodo = (id: number, updates: Partial<Task>) => {
+    setTodos(
+      todos.map((todo) => {
+        if (todo.id === id) {
+          return {
+            ...todo,
+            ...updates,
+          };
+        }
+        return todo;
+      })
+    );
+  };
+
   const clearCompleted = () => {
     setTodos(todos.filter((todo) => !todo.completed));
   };
@@ -461,6 +475,7 @@ function App() {
             onClose={() => setSelectedTask(null)}
             onToggleComplete={toggleTodo}
             onDelete={deleteTodo}
+            onEdit={editTodo}
           />
         )}
       </div>
