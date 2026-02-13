@@ -2,7 +2,7 @@
  * Task-related utility functions
  */
 
-import { TaskPriority } from '../types';
+import { TaskPriority, TaskStatus, Task } from '../types';
 import { PRIORITIES } from '../constants/priorities';
 
 /**
@@ -35,6 +35,18 @@ export function getTaskIcon(priority: TaskPriority | string): string {
     default:
       return '📝';
   }
+}
+
+/**
+ * Get task status with backward compatibility
+ * Returns status if defined, otherwise derives from completed boolean
+ */
+export function getTaskStatus(task: Task): TaskStatus {
+  if (task.status) {
+    return task.status;
+  }
+  // Backward compatibility: derive status from completed boolean
+  return task.completed ? 'completed' : 'pending';
 }
 
 /**

@@ -6,3 +6,4 @@ export * from './TaskItem';
 export * from './TaskList';
 export * from './AddTaskForm';
 export * from './TaskFilters';
+export * from './TaskGroup';
