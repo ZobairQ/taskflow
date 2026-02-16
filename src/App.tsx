@@ -9,10 +9,12 @@ import { useTheme } from './ThemeContext';
 import { GamificationProvider, useGame, getLevelGradient } from './GamificationContext';
 import { useProjects, ProjectProvider, Task } from './ProjectContext';
 import { useFilters } from './hooks/useFilters';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { getGreeting } from './utils/dateUtils';
 import { calculateProgress, pluralize } from './utils/formatters';
-import { ProgressBar, StatCard } from './components/common';
+import { ProgressBar, StatCard, ShortcutsHelp } from './components/common';
 import { TaskList, AddTaskForm, TaskFilters } from './components/tasks';
+import { CalendarView } from './components/calendar';
 import {
   LevelCard,
   StreakCard,
@@ -20,6 +22,7 @@ import {
   AchievementsGrid,
   LevelUpModal,
 } from './components/gamification';
+import { QuickActions, FeatureHints } from './components/layout';
 import { TaskModal } from './TaskModal';
 
 function App() {
@@ -41,6 +44,8 @@ function App() {
   const [todos, setTodos] = useState<Task[]>([]);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Load from localStorage on mount
@@ -68,12 +73,34 @@ function App() {
   // Use custom filter hook
   const { filter, setFilter, searchQuery, setSearchQuery, filteredTasks } = useFilters(todos);
 
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onNewTask: () => inputRef.current?.focus(),
+    onFocusSearch: () => {
+      const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+      searchInput?.focus();
+    },
+    onShowHelp: () => setShowShortcutsHelp(true),
+    onCloseModal: () => {
+      setSelectedTask(null);
+      setShowLevelUp(false);
+      setShowShortcutsHelp(false);
+    },
+    onToggleTheme: toggleTheme,
+    onToggleCalendar: () => setViewMode(v => v === 'calendar' ? 'list' : 'calendar'),
+    onFilterAll: () => setFilter('all'),
+    onFilterActive: () => setFilter('active'),
+    onFilterCompleted: () => setFilter('completed'),
+  });
+
   const addTodo = (taskData: {
     text: string;
     description: string;
     priority: 'low' | 'medium' | 'high';
     category: string;
     dueDate: string;
+    isRecurring?: boolean;
+    recurrencePattern?: Task['recurrencePattern'];
   }) => {
     const newTodo: Task = {
       id: Date.now(),
@@ -84,6 +111,8 @@ function App() {
       dueDate: taskData.dueDate || null,
       category: taskData.category,
       createdAt: Date.now(),
+      isRecurring: taskData.isRecurring,
+      recurrencePattern: taskData.recurrencePattern,
     };
 
     setTodos([newTodo, ...todos]);
@@ -262,44 +291,7 @@ function App() {
         </div>
 
         {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="flex justify-center">
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-slate-200/20 dark:hover:bg-white/10 transition-colors"
-              aria-label="Toggle theme"
-            >
-              {theme === 'light' ? (
-                <svg
-                  className="w-6 h-6 text-slate-700 dark:text-slate-200"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  className="w-6 h-6 text-slate-200 dark:text-slate-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                  />
-                </svg>
-              )}
-            </button>
-          </div>
+        <div className="text-center space-y-3">
           <h1 className="text-4xl md:text-5xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">
             Task
             <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
@@ -309,6 +301,78 @@ function App() {
           <p className="text-slate-600 dark:text-slate-300 text-lg md:text-xl">
             {getGreeting()}! You have {stats.active} pending {pluralize(stats.active, 'task')}
           </p>
+
+          {/* Action Bar - Easy access buttons with labels */}
+          <div className="flex flex-wrap justify-center gap-2 pt-2">
+            <Link
+              to="/analytics"
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+                theme === 'dark'
+                  ? 'bg-slate-700/50 hover:bg-slate-700 text-slate-300'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 shadow-sm border border-slate-200'
+              }`}
+            >
+              <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span>Analytics</span>
+            </Link>
+
+            <Link
+              to="/settings"
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+                theme === 'dark'
+                  ? 'bg-slate-700/50 hover:bg-slate-700 text-slate-300'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 shadow-sm border border-slate-200'
+              }`}
+            >
+              <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>Settings</span>
+            </Link>
+
+            <button
+              onClick={toggleTheme}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+                theme === 'dark'
+                  ? 'bg-slate-700/50 hover:bg-slate-700 text-slate-300'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 shadow-sm border border-slate-200'
+              }`}
+            >
+              {theme === 'light' ? (
+                <>
+                  <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                  <span>Dark</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                  <span>Light</span>
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() => setShowShortcutsHelp(true)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+                theme === 'dark'
+                  ? 'bg-slate-700/50 hover:bg-slate-700 text-slate-300'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 shadow-sm border border-slate-200'
+              }`}
+            >
+              <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <span className="hidden sm:inline">Shortcuts</span>
+              <kbd className="hidden sm:inline px-1.5 py-0.5 text-xs bg-slate-200 dark:bg-slate-600 rounded">?</kbd>
+            </button>
+          </div>
         </div>
 
         {/* Progress Card */}
@@ -409,6 +473,12 @@ function App() {
           levelGradient={getLevelGradient(gameData.level)}
         />
 
+        {/* Quick Actions */}
+        <QuickActions />
+
+        {/* Feature Hints */}
+        <FeatureHints />
+
         {/* Add Todo Form */}
         <AddTaskForm onAdd={addTodo} showDescription={true} />
 
@@ -421,17 +491,55 @@ function App() {
           taskCount={filteredTasks.length}
         />
 
-        {/* Todo List */}
-        <TaskList
-          tasks={filteredTasks}
-          onToggle={toggleTodo}
-          onDelete={deleteTodo}
-          onViewDetails={setSelectedTask}
-          emptyMessage="No tasks found"
-          emptySubMessage={
-            searchQuery ? 'Try adjusting your search criteria' : 'Add a new task to get started'
-          }
-        />
+        {/* View Toggle */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+              viewMode === 'list'
+                ? 'bg-indigo-600 text-white shadow-lg'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            List View
+          </button>
+
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+              viewMode === 'calendar'
+                ? 'bg-indigo-600 text-white shadow-lg'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Calendar View
+          </button>
+        </div>
+
+        {/* Conditional View Rendering */}
+        {viewMode === 'calendar' ? (
+          <CalendarView
+            tasks={filteredTasks}
+            onTaskClick={setSelectedTask}
+          />
+        ) : (
+          <TaskList
+            tasks={filteredTasks}
+            onToggle={toggleTodo}
+            onDelete={deleteTodo}
+            onViewDetails={setSelectedTask}
+            emptyMessage="No tasks found"
+            emptySubMessage={
+              searchQuery ? 'Try adjusting your search criteria' : 'Add a new task to get started'
+            }
+          />
+        )}
 
         {/* Achievements Section */}
         <AchievementsGrid achievements={gameData.achievements} />
@@ -478,6 +586,12 @@ function App() {
             onEdit={editTodo}
           />
         )}
+
+        {/* Keyboard Shortcuts Help Modal */}
+        <ShortcutsHelp
+          isOpen={showShortcutsHelp}
+          onClose={() => setShowShortcutsHelp(false)}
+        />
       </div>
     </div>
   );

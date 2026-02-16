@@ -3,6 +3,8 @@
  * Standardized naming: Todo → Task
  */
 
+import { RecurrencePattern, RecurringTaskInstance } from './recurrence.types';
+
 export type TaskPriority = 'low' | 'medium' | 'high';
 export type TaskStatus = 'pending' | 'in_progress' | 'completed';
 
@@ -33,6 +35,15 @@ export interface Task {
   startedAt?: number; // When task was marked as in_progress
   subtasks?: Subtask[]; // Checklist items
   notificationSettings?: NotificationSettings;
+  // Recurring task fields
+  isRecurring?: boolean;
+  recurrencePattern?: RecurrencePattern;
+  recurrenceInstances?: RecurringTaskInstance[];
+  parentRecurringId?: number; // For generated instances
+  recurrenceConfig?: {
+    totalGenerated: number;
+    lastGeneratedAt?: number;
+  };
 }
 
 // Backward compatibility: Export as Todo for gradual migration

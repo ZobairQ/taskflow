@@ -7,7 +7,11 @@
       "Bash(PORT=3006 npm start)",
       "Bash(npm test -- --watch=false)",
       "Bash(curl -s http://localhost:3006)",
-      "Bash(npm install react-router-dom)"
+      "Bash(npm install react-router-dom)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(tree:*)",
+      "Bash(npm test:*)"
     ]
   }
 }

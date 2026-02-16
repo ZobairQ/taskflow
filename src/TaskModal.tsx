@@ -5,8 +5,9 @@ import { formatDateFull, getDaysUntil } from './utils/dateUtils';
 import { estimateReadingTime } from './utils/taskUtils';
 import { PRIORITIES } from './constants/priorities';
 import { CATEGORIES } from './constants/categories';
-import { SubtaskList } from './components/tasks';
+import { SubtaskList, RecurrencePicker, RecurringBadge } from './components/tasks';
 import { NotificationSettingsComponent } from './components/common';
+import { CreateTemplateModal } from './components/templates';
 import {
   requestNotificationPermission,
   scheduleNotifications,
@@ -26,6 +27,7 @@ interface TaskModalProps {
 export function TaskModal({ task, onClose, onToggleComplete, onDelete, onEdit }: TaskModalProps) {
   const { theme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
+  const [showCreateTemplate, setShowCreateTemplate] = useState(false);
   const [editedTask, setEditedTask] = useState({
     text: task.text,
     description: task.description || '',
@@ -38,6 +40,8 @@ export function TaskModal({ task, onClose, onToggleComplete, onDelete, onEdit }:
       timing: [15, 60, 1440],
       type: 'browser' as const,
     },
+    isRecurring: task.isRecurring || false,
+    recurrencePattern: task.recurrencePattern || undefined,
   });
 
   const priorityStyle = PRIORITIES[task.priority];
@@ -216,6 +220,8 @@ export function TaskModal({ task, onClose, onToggleComplete, onDelete, onEdit }:
         timing: [15, 60, 1440],
         type: 'browser' as const,
       },
+      isRecurring: task.isRecurring || false,
+      recurrencePattern: task.recurrencePattern || undefined,
     });
     setIsEditing(false);
   };
@@ -408,6 +414,21 @@ export function TaskModal({ task, onClose, onToggleComplete, onDelete, onEdit }:
                   />
                 </div>
               )}
+
+              {/* Recurrence */}
+              <div>
+                <RecurrencePicker
+                  value={editedTask.recurrencePattern}
+                  onChange={(pattern) =>
+                    setEditedTask({
+                      ...editedTask,
+                      recurrencePattern: pattern || undefined,
+                      isRecurring: !!pattern,
+                    })
+                  }
+                  startDate={editedTask.dueDate ? new Date(editedTask.dueDate) : new Date()}
+                />
+              </div>
             </div>
           ) : (
             // View Mode (original content)
@@ -435,6 +456,10 @@ export function TaskModal({ task, onClose, onToggleComplete, onDelete, onEdit }:
                 </svg>
                 <span className="font-medium">{task.category}</span>
               </div>
+            )}
+
+            {task.isRecurring && task.recurrencePattern && (
+              <RecurringBadge pattern={task.recurrencePattern} />
             )}
           </div>
 
@@ -559,6 +584,17 @@ export function TaskModal({ task, onClose, onToggleComplete, onDelete, onEdit }:
               // View Mode Actions (original)
               <>
             <button
+              onClick={() => setShowCreateTemplate(true)}
+              className="flex items-center gap-2 px-4 py-3 rounded-xl text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all font-medium"
+              title="Save as template"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+              </svg>
+              <span className="hidden sm:inline">Template</span>
+            </button>
+
+            <button
               onClick={() => onDelete(task.id)}
               className="flex items-center gap-2 px-6 py-3 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all font-medium"
             >
@@ -597,6 +633,17 @@ export function TaskModal({ task, onClose, onToggleComplete, onDelete, onEdit }:
           </div>
         </div>
       </div>
+
+      {/* Create Template Modal */}
+      {showCreateTemplate && (
+        <CreateTemplateModal
+          task={task}
+          onClose={() => setShowCreateTemplate(false)}
+          onSuccess={() => {
+            setShowCreateTemplate(false);
+          }}
+        />
+      )}
     </div>
   );
 }

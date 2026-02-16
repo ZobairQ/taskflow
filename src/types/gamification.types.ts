@@ -10,6 +10,7 @@ export interface Achievement {
   unlocked: boolean;
   unlockedAt?: number;
   points: number;
+  category?: 'productivity' | 'dedication' | 'focus' | 'organization' | 'efficiency';
 }
 
 export interface DailyChallenge {
@@ -33,6 +34,8 @@ export interface PowerUp {
   duration: number; // in minutes
   expiresAt?: number;
   activatedAt?: number;
+  requiredLevel?: number;
+  rarity?: 'common' | 'rare' | 'epic' | 'legendary';
 }
 
 export interface GameData {

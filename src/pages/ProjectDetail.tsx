@@ -7,12 +7,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useProjects, Task } from '../ProjectContext';
 import { useGame } from '../GamificationContext';
 import { calculateProgress } from '../utils/formatters';
-import { AddTaskForm, TaskGroupList } from '../components/tasks';
+import { AddTaskForm, TaskGroupList, TaskBoard } from '../components/tasks';
 import { TaskModal } from '../TaskModal';
 import { TaskStatus } from '../types';
 import { getTaskStatus } from '../utils/taskUtils';
 
 type TaskView = 'pending' | 'in_progress' | 'completed' | 'all';
+type ViewMode = 'list' | 'board';
 
 export default function ProjectDetail() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -25,6 +26,7 @@ export default function ProjectDetail() {
   const [todos, setTodos] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskView, setTaskView] = useState<TaskView>('pending');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Load project todos on mount
@@ -399,15 +401,57 @@ export default function ProjectDetail() {
 
         {/* Task List - Grouped by Priority */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
-          <TaskGroupList
-            tasks={filteredTasks}
-            onToggle={toggleTodo}
-            onStatusChange={handleStatusChange}
-            onDelete={deleteTodo}
-            onViewDetails={setSelectedTask}
-            showCompleted={taskView === 'completed'}
-            showInProgress={taskView === 'in_progress'}
-          />
+          {/* View Mode Toggle */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                viewMode === 'list'
+                  ? 'bg-indigo-600 text-white shadow-lg'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              List View
+            </button>
+
+            <button
+              onClick={() => setViewMode('board')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                viewMode === 'board'
+                  ? 'bg-indigo-600 text-white shadow-lg'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+              </svg>
+              Board View
+            </button>
+          </div>
+
+          {/* Conditional View Rendering */}
+          {viewMode === 'board' ? (
+            <TaskBoard
+              tasks={todos}
+              onToggle={toggleTodo}
+              onStatusChange={handleStatusChange}
+              onDelete={deleteTodo}
+              onViewDetails={setSelectedTask}
+            />
+          ) : (
+            <TaskGroupList
+              tasks={filteredTasks}
+              onToggle={toggleTodo}
+              onStatusChange={handleStatusChange}
+              onDelete={deleteTodo}
+              onViewDetails={setSelectedTask}
+              showCompleted={taskView === 'completed'}
+              showInProgress={taskView === 'in_progress'}
+            />
+          )}
         </div>
 
         {/* Task Detail Modal */}

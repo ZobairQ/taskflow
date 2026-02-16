@@ -1,12 +1,16 @@
 /**
- * Add task form component with enhanced description features
+ * Add task form component with enhanced description, recurrence, and template features
  */
 
 import React, { useState, useRef } from 'react';
 import { TaskPriority } from '../../types';
+import { RecurrencePattern } from '../../types/recurrence.types';
 import { CATEGORIES, Category } from '../../constants/categories';
 import { PRIORITIES } from '../../constants/priorities';
 import { countWords, estimateReadingTime } from '../../utils/taskUtils';
+import { getRecurrenceDescription } from '../../utils/recurrenceUtils';
+import { RecurrencePicker } from './RecurrencePicker';
+import { TemplateGallery } from '../templates';
 
 interface AddTaskFormProps {
   onAdd: (task: {
@@ -15,6 +19,9 @@ interface AddTaskFormProps {
     priority: TaskPriority;
     category: string;
     dueDate: string;
+    isRecurring?: boolean;
+    recurrencePattern?: RecurrencePattern;
+    subtasks?: { id: string; text: string; completed: boolean }[];
   }) => void;
   showDescription?: boolean;
 }
@@ -31,6 +38,11 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [category, setCategory] = useState<Category>(CATEGORIES[0]);
   const [dueDate, setDueDate] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrencePattern, setRecurrencePattern] = useState<RecurrencePattern | null>(null);
+  const [showRecurrencePicker, setShowRecurrencePicker] = useState(false);
+  const [showTemplateGallery, setShowTemplateGallery] = useState(false);
+  const [subtasks, setSubtasks] = useState<{ id: string; text: string; completed: boolean }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = () => {
@@ -42,13 +54,25 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
       priority,
       category,
       dueDate,
+      isRecurring: isRecurring && !!recurrencePattern,
+      recurrencePattern: isRecurring && recurrencePattern ? recurrencePattern : undefined,
+      subtasks: subtasks.length > 0 ? subtasks : undefined,
     });
 
+    resetForm();
+    inputRef.current?.focus();
+  };
+
+  const resetForm = () => {
     setInputValue('');
     setInputDescription('');
     setPriority('medium');
+    setCategory(CATEGORIES[0]);
     setDueDate('');
-    inputRef.current?.focus();
+    setIsRecurring(false);
+    setRecurrencePattern(null);
+    setShowRecurrencePicker(false);
+    setSubtasks([]);
   };
 
   const handleQuickAdd = () => {
@@ -56,10 +80,47 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
+  const handleTemplateSelect = (templateData: Partial<{
+    text: string;
+    description: string;
+    priority: 'low' | 'medium' | 'high';
+    category: string;
+    subtasks: { id: string; text: string; completed: boolean }[];
+    recurrencePattern: RecurrencePattern;
+    dueDate: string;
+  }>) => {
+    setIsExpanded(true);
+    if (templateData.text) setInputValue(templateData.text);
+    if (templateData.description) setInputDescription(templateData.description);
+    if (templateData.priority) setPriority(templateData.priority);
+    if (templateData.category && CATEGORIES.includes(templateData.category as Category)) {
+      setCategory(templateData.category as Category);
+    }
+    if (templateData.subtasks) setSubtasks(templateData.subtasks);
+    if (templateData.recurrencePattern) {
+      setRecurrencePattern(templateData.recurrencePattern);
+      setIsRecurring(true);
+    }
+    if (templateData.dueDate) setDueDate(templateData.dueDate);
+    setShowTemplateGallery(false);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
+    }
+  };
+
+  const handleToggleRecurring = () => {
+    if (!isRecurring) {
+      setIsRecurring(true);
+      setShowRecurrencePicker(true);
+    } else {
+      setIsRecurring(false);
+      setShowRecurrencePicker(false);
+      setRecurrencePattern(null);
     }
   };
 
@@ -71,15 +132,28 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
     <>
       {/* Collapsed View */}
       {!isExpanded && (
-        <button
-          onClick={handleQuickAdd}
-          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-4 rounded-2xl font-semibold transition-all hover:shadow-lg hover:shadow-indigo-200 dark:hover:shadow-indigo-900/50 active:scale-[0.98] flex items-center justify-center gap-3 shadow-md"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          <span className="text-lg">Add New Task</span>
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleQuickAdd}
+            className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-4 rounded-2xl font-semibold transition-all hover:shadow-lg hover:shadow-indigo-200 dark:hover:shadow-indigo-900/50 active:scale-[0.98] flex items-center justify-center gap-3 shadow-md"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            <span className="text-lg">Add New Task</span>
+          </button>
+          <button
+            data-action="open-templates"
+            onClick={() => setShowTemplateGallery(true)}
+            className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-5 py-4 rounded-2xl font-semibold transition-all hover:shadow-lg hover:shadow-emerald-200 dark:hover:shadow-emerald-900/50 active:scale-[0.98] flex items-center justify-center gap-2 shadow-md"
+            title="Choose from templates - Meeting prep, Bug reports, and more!"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+            </svg>
+            <span className="text-lg">Templates</span>
+          </button>
+        </div>
       )}
 
       {/* Expanded View */}
@@ -252,6 +326,115 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
                 </div>
               </div>
 
+              {/* Prominent Recurring Task Toggle */}
+              <div className="pt-3 border-t border-slate-50 dark:border-slate-700 mt-2">
+                <button
+                  onClick={handleToggleRecurring}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
+                    isRecurring
+                      ? 'bg-indigo-100 dark:bg-indigo-900/40 border-2 border-indigo-400 dark:border-indigo-500'
+                      : 'bg-slate-50 dark:bg-slate-700/50 border-2 border-dashed border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${
+                      isRecurring
+                        ? 'bg-indigo-500 text-white'
+                        : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400'
+                    }`}>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </div>
+                    <div className="text-left">
+                      <span className={`font-semibold ${isRecurring ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}>
+                        Make this a recurring task
+                      </span>
+                      {isRecurring && recurrencePattern && (
+                        <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-0.5">
+                          {getRecurrenceDescription(recurrencePattern)}
+                        </p>
+                      )}
+                      {!isRecurring && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          Daily, weekly, monthly, or custom schedule
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className={`flex items-center gap-2 ${
+                    isRecurring ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'
+                  }`}>
+                    {isRecurring && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowRecurrencePicker(!showRecurrencePicker);
+                        }}
+                        className="px-3 py-1 text-sm font-medium rounded-lg bg-indigo-200 dark:bg-indigo-800 hover:bg-indigo-300 dark:hover:bg-indigo-700 transition-colors"
+                      >
+                        {showRecurrencePicker ? 'Hide' : 'Edit'}
+                      </button>
+                    )}
+                    <div className={`w-10 h-6 rounded-full transition-all ${
+                      isRecurring ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-600'
+                    }`}>
+                      <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform mt-0.5 ${
+                        isRecurring ? 'translate-x-4.5 ml-0.5' : 'translate-x-0.5'
+                      }`} />
+                    </div>
+                  </div>
+                </button>
+
+                {/* Recurrence Picker (when expanded) */}
+                {isRecurring && showRecurrencePicker && (
+                  <div className="mt-3 animate-in slide-in-from-top-2 fade-in duration-200">
+                    <RecurrencePicker
+                      value={recurrencePattern}
+                      onChange={(pattern) => setRecurrencePattern(pattern)}
+                      startDate={dueDate ? new Date(dueDate) : new Date()}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Subtasks Preview */}
+              {subtasks.length > 0 && (
+                <div className="pt-3 border-t border-slate-50 dark:border-slate-700 mt-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                      Subtasks ({subtasks.filter(s => s.completed).length}/{subtasks.length})
+                    </span>
+                    <button
+                      onClick={() => setSubtasks([])}
+                      className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {subtasks.map((st, index) => (
+                      <div key={st.id} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                        <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center ${
+                          st.completed
+                            ? 'bg-indigo-500 border-indigo-500 text-white'
+                            : 'border-slate-300 dark:border-slate-500'
+                        }`}>
+                          {st.completed && (
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className={st.completed ? 'line-through text-slate-400' : ''}>
+                          {st.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Quick Tips Footer */}
               {showDescription && !inputValue && (
                 <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-50 dark:border-slate-700">
@@ -263,9 +446,32 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
                   </span>
                 </div>
               )}
+
+              {/* Use Template Link (when expanded) */}
+              {isExpanded && (
+                <div className="pt-2 border-t border-slate-50 dark:border-slate-700">
+                  <button
+                    onClick={() => setShowTemplateGallery(true)}
+                    className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                    </svg>
+                    Choose from templates
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
+      )}
+
+      {/* Template Gallery Modal */}
+      {showTemplateGallery && (
+        <TemplateGallery
+          onSelect={handleTemplateSelect}
+          onClose={() => setShowTemplateGallery(false)}
+        />
       )}
     </>
   );

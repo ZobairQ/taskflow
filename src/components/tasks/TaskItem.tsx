@@ -5,6 +5,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import { Task, TaskStatus } from '../../types';
 import { formatDate } from '../../utils/dateUtils';
 import { getTaskIcon, estimateReadingTime, getTaskStatus } from '../../utils/taskUtils';
@@ -17,6 +19,8 @@ interface TaskItemProps {
   onDelete: (id: number) => void;
   onViewDetails?: (task: Task) => void;
   showExpandButton?: boolean;
+  draggable?: boolean;
+  isDragging?: boolean;
 }
 
 const STATUS_CONFIG = {
@@ -65,12 +69,31 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   onDelete,
   onViewDetails,
   showExpandButton = true,
+  draggable = false,
+  isDragging = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const statusButtonRef = useRef<HTMLButtonElement>(null);
   const statusMenuRef = useRef<HTMLDivElement>(null);
+
+  // Draggable setup
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: task.id.toString(),
+    data: {
+      task,
+      type: 'task',
+    },
+    disabled: !draggable,
+  });
+
+  const dragStyle = transform
+    ? {
+        transform: CSS.Translate.toString(transform),
+        zIndex: 1000,
+      }
+    : undefined;
 
   const status = getTaskStatus(task);
   const isInProgress = status === 'in_progress';
@@ -129,13 +152,18 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
   return (
     <div
+      ref={draggable ? setNodeRef : undefined}
+      style={dragStyle}
+      {...(draggable ? { ...attributes, ...listeners } : {})}
       className={`group relative bg-white dark:bg-slate-800 rounded-2xl shadow-sm border transition-all duration-200 hover:shadow-md overflow-hidden ${
+        isDragging ? 'opacity-50 scale-95' : ''
+      } ${
         isCompleted
           ? 'border-slate-200 dark:border-slate-700'
           : isInProgress
           ? 'border-blue-300 dark:border-blue-500'
           : 'border-slate-100 dark:border-slate-700'
-      }`}
+      } ${draggable ? 'cursor-grab active:cursor-grabbing' : ''}`}
     >
       {/* Status Header - Prominent Top Section */}
       <div className={`px-5 py-3 ${statusConfig.bgColor} border-b ${statusConfig.borderColor}`}>

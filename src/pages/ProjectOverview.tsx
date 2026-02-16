@@ -5,6 +5,7 @@ import { useTheme } from '../ThemeContext';
 import { useGame, getStreakBadge, getXpProgress } from '../GamificationContext';
 import { ProjectCard, CreateProjectModal } from '../components/projects';
 import { LevelCard, StreakCard } from '../components/gamification';
+import { PomodoroTimer } from '../components/timer';
 
 export default function ProjectOverview() {
   const { theme, toggleTheme } = useTheme();
@@ -130,6 +131,9 @@ export default function ProjectOverview() {
           {/* Streak Card */}
           <StreakCard streak={gameData.streak} streakInfo={streakInfo} />
         </div>
+
+        {/* Pomodoro Timer */}
+        <PomodoroTimer />
 
         {/* Projects Section */}
         <div className="space-y-4">
