@@ -1,24 +1,27 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
-import ProjectOverview from './pages/ProjectOverview';
-import ProjectDetail from './pages/ProjectDetail';
-import { SettingsPage } from './pages/SettingsPage';
-import { AnalyticsDashboard } from './pages/AnalyticsPage';
 import { ThemeProvider } from './ThemeContext';
 import { GamificationProvider } from './GamificationContext';
 import { ProjectProvider } from './ProjectContext';
 import { TimerProvider } from './TimerContext';
 import { TemplateProvider } from './contexts/TemplateContext';
-import { ErrorBoundary } from './components/common';
+import { ErrorBoundary, PageLoader } from './components/common';
 import { InstallPrompt, OfflineIndicator } from './components/pwa';
 import reportWebVitals from './reportWebVitals';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
+// Lazy load page components for code splitting
+const ProjectOverview = lazy(() => import('./pages/ProjectOverview'));
+const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const AnalyticsDashboard = lazy(() => import('./pages/AnalyticsPage').then(m => ({ default: m.AnalyticsDashboard })));
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
+
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
@@ -30,13 +33,15 @@ root.render(
                 <TemplateProvider>
                   <OfflineIndicator />
                   <InstallPrompt />
-                  <Routes>
-                    <Route path="/" element={<ProjectOverview />} />
-                    <Route path="/project/:projectId" element={<ProjectDetail />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="/analytics" element={<AnalyticsDashboard />} />
-                    <Route path="/projects" element={<Navigate to="/" replace />} />
-                  </Routes>
+                  <Suspense fallback={<PageLoader message="Loading TaskFlow..." />}>
+                    <Routes>
+                      <Route path="/" element={<ProjectOverview />} />
+                      <Route path="/project/:projectId" element={<ProjectDetail />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/analytics" element={<AnalyticsDashboard />} />
+                      <Route path="/projects" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </Suspense>
                 </TemplateProvider>
               </TimerProvider>
             </ThemeProvider>
@@ -49,11 +54,11 @@ root.render(
 
 // Register service worker for PWA
 serviceWorkerRegistration.register({
-  onUpdate: (registration) => {
-    console.log('New version available! Please refresh.');
+  onUpdate: () => {
+    console.log('[PWA] New version available! Please refresh.');
   },
-  onSuccess: (registration) => {
-    console.log('App is ready for offline use!');
+  onSuccess: () => {
+    console.log('[PWA] App is ready for offline use!');
   },
 });
 

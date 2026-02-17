@@ -12,3 +12,6 @@ export * from './TaskBoard';
 export * from './TaskCard';
 export * from './RecurrencePicker';
 export * from './RecurringBadge';
+export * from './SmartInput';
+export * from './TaskBreakdown';
+export * from './TimelineView';
