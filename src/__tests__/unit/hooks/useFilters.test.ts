@@ -4,7 +4,7 @@
 
 import { renderHook, act } from '@testing-library/react';
 import { useFilters } from '../../../hooks/useFilters';
-import { mockTasks } from '../../utils/mockData';
+import { mockTasks } from '../../../testing/mock-data';
 
 describe('useFilters', () => {
   const tasks = mockTasks;

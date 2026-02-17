@@ -2,7 +2,7 @@
  * Mock Data - Test fixtures for consistent testing
  */
 
-import { Task } from '../../ProjectContext';
+import { Task } from '../types';
 
 // Sample tasks for testing
 export const mockTasks: Task[] = [
@@ -11,14 +11,13 @@ export const mockTasks: Task[] = [
     text: 'Complete project proposal',
     completed: false,
     priority: 'high',
-    projectId: 1,
     createdAt: new Date('2024-01-15T10:00:00.000Z').getTime(),
     dueDate: '2024-01-20T00:00:00.000Z',
     category: 'work',
     description: 'Write the Q1 project proposal',
     subtasks: [
-      { id: 'st1', text: 'Research competitors', completed: true },
-      { id: 'st2', text: 'Draft outline', completed: false },
+      { id: 1, text: 'Research competitors', completed: true, createdAt: Date.now() },
+      { id: 2, text: 'Draft outline', completed: false, createdAt: Date.now() },
     ],
   },
   {
@@ -26,9 +25,9 @@ export const mockTasks: Task[] = [
     text: 'Review code changes',
     completed: true,
     priority: 'medium',
-    projectId: 1,
     createdAt: new Date('2024-01-14T09:00:00.000Z').getTime(),
-    completedAt: '2024-01-14T15:00:00.000Z',
+    dueDate: null,
+    completedAt: new Date('2024-01-14T15:00:00.000Z').getTime(),
     category: 'work',
     description: 'Review pull requests from team',
   },
@@ -37,8 +36,8 @@ export const mockTasks: Task[] = [
     text: 'Buy groceries',
     completed: false,
     priority: 'low',
-    projectId: 2,
     createdAt: new Date('2024-01-15T08:00:00.000Z').getTime(),
+    dueDate: null,
     category: 'personal',
     description: 'Weekly shopping trip',
   },
@@ -47,8 +46,8 @@ export const mockTasks: Task[] = [
     text: 'Weekly team meeting',
     completed: false,
     priority: 'medium',
-    projectId: 1,
     createdAt: new Date('2024-01-10T10:00:00.000Z').getTime(),
+    dueDate: null,
     isRecurring: true,
     recurrencePattern: {
       frequency: 'weekly',
@@ -63,7 +62,6 @@ export const mockTasks: Task[] = [
     text: 'Gym workout',
     completed: false,
     priority: 'high',
-    projectId: 2,
     createdAt: new Date('2024-01-15T06:00:00.000Z').getTime(),
     dueDate: '2024-01-15T18:00:00.000Z',
     category: 'health',
@@ -171,8 +169,8 @@ export const mockTemplates = [
       description: 'Discuss {{topic}}',
       priority: 'medium' as const,
       subtasks: [
-        { id: 'st1', text: 'Prepare agenda', completed: false },
-        { id: 'st2', text: 'Send follow-up email', completed: false },
+        { id: 1, text: 'Prepare agenda', completed: false, createdAt: Date.now() },
+        { id: 2, text: 'Send follow-up email', completed: false, createdAt: Date.now() },
       ],
     },
   },

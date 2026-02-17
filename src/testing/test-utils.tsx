@@ -5,11 +5,11 @@
 import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
-import { ProjectProvider } from '../../ProjectContext';
-import { GamificationProvider } from '../../GamificationContext';
-import { ThemeProvider } from '../../ThemeContext';
-import { TimerProvider } from '../../TimerContext';
-import { TemplateProvider } from '../../contexts/TemplateContext';
+import { ProjectProvider } from '../ProjectContext';
+import { GamificationProvider } from '../GamificationContext';
+import { ThemeProvider } from '../ThemeContext';
+import { TimerProvider } from '../TimerContext';
+import { TemplateProvider } from '../contexts/TemplateContext';
 
 // All providers wrapper
 const AllProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => (
