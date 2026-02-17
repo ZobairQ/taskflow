@@ -12,7 +12,20 @@
       "Bash(npx tsc:*)",
       "Bash(tree:*)",
       "Bash(npm test:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(find:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(docker:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npx prisma db seed:*)",
+      "Bash(curl:*)",
+      "Bash(xargs sed:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWxxbzB0eTMwMDAweDRucXFxNzZ1ajY4IiwiaWF0IjoxNzcxMzM2NTE5LCJleHAiOjE3NzEzMzc0MTl9.bBLnlOYDhMq2UMLmaIy_jWrJ_Mt92iyuhGYBx1auWlY\")",
+      "Bash(__NEW_LINE_d72692baa98e1037__ curl -s http://localhost:4000/graphql -H \"Content-Type: application/json\" -H \"Authorization: Bearer $TOKEN\" -d '{\"\"query\"\": \"\"mutation { createProject\\(input: { name: \\\\\"\"Test Project\\\\\"\", description: \\\\\"\"A test project\\\\\"\" }\\) { id name description } }\"\"}')"
     ]
   }
 }

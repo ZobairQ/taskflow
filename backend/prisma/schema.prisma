@@ -1,0 +1,323 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER & AUTHENTICATION
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?   // Optional for OAuth-only users
+  name          String?
+  avatar        String?
+
+  // OAuth providers
+  googleId      String?   @unique
+  githubId      String?   @unique
+
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+
+  // Relations
+  projects           Project[]
+  tasks              Task[]
+  gameProfile        GamificationProfile?
+  timerSessions      PomodoroSession[]
+  templates          Template[]
+  achievements       UserAchievement[]
+  dailyChallenges    UserDailyChallenge[]
+  analytics          DailyAnalytics[]
+
+  @@map("users")
+}
+
+// ============================================================================
+// PROJECTS
+// ============================================================================
+
+model Project {
+  id            String   @id @default(cuid())
+  name          String
+  description   String   @default("")
+  color         String   @default("#6366f1")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks         Task[]
+
+  @@index([userId])
+  @@map("projects")
+}
+
+// ============================================================================
+// TASKS
+// ============================================================================
+
+enum TaskStatus {
+  pending
+  in_progress
+  completed
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+}
+
+enum DependencyType {
+  blocks
+  blockedBy
+  relatesTo
+}
+
+model Task {
+  id            String      @id @default(cuid())
+  text          String
+  description   String      @default("")
+
+  // Status fields
+  completed     Boolean     @default(false)
+  status        TaskStatus  @default(pending)
+
+  // Priority and categorization
+  priority      TaskPriority @default(medium)
+  category      String      @default("general")
+
+  // Dates
+  dueDate       DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  completedAt   DateTime?
+  startedAt     DateTime?
+
+  // Relations
+  projectId     String
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Subtasks (stored as JSON for flexibility)
+  subtasks      Json?
+
+  // Recurrence
+  isRecurring       Boolean   @default(false)
+  recurrencePattern Json?
+  recurrenceInstances Json?
+  parentRecurringId String?
+  recurrenceConfig  Json?
+
+  // Dependencies
+  dependencies  TaskDependency[]  @relation("TaskDependencies")
+  dependents    TaskDependency[]  @relation("TaskDependents")
+
+  // Notifications
+  notificationSettings Json?
+
+  // Timer sessions
+  timerSessions PomodoroSession[]
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([dueDate])
+  @@index([status])
+  @@map("tasks")
+}
+
+model TaskDependency {
+  id                  String         @id @default(cuid())
+  predecessorTaskId   String
+  successorTaskId     String
+  type                DependencyType @default(blocks)
+  createdAt           DateTime       @default(now())
+
+  predecessorTask     Task           @relation("TaskDependencies", fields: [predecessorTaskId], references: [id], onDelete: Cascade)
+  successorTask       Task           @relation("TaskDependents", fields: [successorTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([predecessorTaskId, successorTaskId])
+  @@map("task_dependencies")
+}
+
+// ============================================================================
+// GAMIFICATION
+// ============================================================================
+
+model GamificationProfile {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // XP and Level
+  xp                    Int       @default(0)
+  level                 Int       @default(1)
+
+  // Streaks
+  currentStreak         Int       @default(0)
+  maxStreak             Int       @default(0)
+  lastStreakDate        DateTime?
+  lastStreakReward      DateTime?
+
+  // Statistics
+  totalTasksCompleted   Int       @default(0)
+  completedTasksToday   Int       @default(0)
+  lastLoginDate         DateTime?
+  sessionStart          DateTime  @default(now())
+
+  // Power-ups (active state stored as JSON)
+  activePowerUps        Json?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("gamification_profiles")
+}
+
+// Achievement Definition (Static data - seeded)
+model AchievementDefinition {
+  id                    String    @id
+  title                 String
+  description           String
+  icon                  String
+  points                Int
+  category              String?   // productivity, dedication, focus, organization, efficiency
+
+  // Relations
+  userAchievements      UserAchievement[]
+
+  @@map("achievement_definitions")
+}
+
+// User Achievement (Unlocked achievements)
+model UserAchievement {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId     String
+  unlockedAt        DateTime  @default(now())
+
+  achievement       AchievementDefinition @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// Daily Challenge Definition (Static data - seeded)
+model DailyChallengeDefinition {
+  id                    String    @id
+  title                 String
+  description           String
+  target                Int
+  reward                Int
+  icon                  String
+
+  // Relations
+  userChallenges        UserDailyChallenge[]
+
+  @@map("daily_challenge_definitions")
+}
+
+// User Daily Challenge Progress
+model UserDailyChallenge {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId       String
+  date              DateTime  @db.Date
+  current           Int       @default(0)
+  completed         Boolean   @default(false)
+  completedAt       DateTime?
+
+  challenge         DailyChallengeDefinition @relation(fields: [challengeId], references: [id])
+
+  @@unique([userId, challengeId, date])
+  @@map("user_daily_challenges")
+}
+
+// ============================================================================
+// TIMER / POMODORO
+// ============================================================================
+
+enum PomodoroPhase {
+  work
+  shortBreak
+  longBreak
+}
+
+model PomodoroSession {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId        String?
+
+  startTime     DateTime      @default(now())
+  endTime       DateTime?
+  duration      Int           // seconds
+  type          PomodoroPhase
+  completed     Boolean       @default(false)
+
+  // Task relation (optional)
+  task          Task?         @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([startTime])
+  @@map("pomodoro_sessions")
+}
+
+// ============================================================================
+// TEMPLATES
+// ============================================================================
+
+model Template {
+  id            String    @id @default(cuid())
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name          String
+  description   String
+  category      String    // work, personal, health, finance, learning, custom
+  icon          String
+  isBuiltIn     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  usageCount    Int       @default(0)
+
+  // Template data (Task template fields as JSON)
+  templateData  Json
+
+  @@index([userId])
+  @@index([category])
+  @@map("templates")
+}
+
+// ============================================================================
+// ANALYTICS
+// ============================================================================
+
+model DailyAnalytics {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date              DateTime  @db.Date
+
+  tasksCreated      Int       @default(0)
+  tasksCompleted    Int       @default(0)
+  focusTime         Int       @default(0) // minutes
+  completionRate    Float     @default(0)
+
+  @@unique([userId, date])
+  @@map("daily_analytics")
+}
