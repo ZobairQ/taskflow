@@ -8,14 +8,48 @@ import {
   StreakBadge,
   GamificationContextValue,
 } from './types';
-import {
-  XP_PER_LEVEL_BASE,
-  XP_PER_TASK,
-} from './constants/gamification';
+import { XP_PER_LEVEL_BASE, XP_PER_TASK } from './constants/gamification';
 import { LEVEL_GRADIENTS, LEVEL_COLORS } from './constants/colors';
 import { GET_GAME_PROFILE } from './graphql/queries';
 import { ACTIVATE_POWER_UP, DEACTIVATE_POWER_UP } from './graphql/mutations';
 import { isAuthenticated } from './lib/apollo';
+
+// Types for GraphQL response
+interface AchievementResponse {
+  achievement: {
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+    points: number;
+    category: string;
+  };
+  unlockedAt?: string | null;
+}
+
+interface DailyChallengeResponse {
+  challenge: {
+    id: string;
+    title: string;
+    description: string;
+    target: number;
+    reward: number;
+    icon: string;
+  };
+  current: number;
+  completed: boolean;
+}
+
+interface PowerUpResponse {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  active: boolean;
+  multiplier: number;
+  duration?: number;
+  expiresAt?: string | null;
+}
 
 // Re-export types and utilities for backward compatibility
 export type { Achievement, DailyChallenge, PowerUp, GameData, StreakBadge };
@@ -38,18 +72,47 @@ export function getLevelFromXP(xp: number): number {
 
 export function getXpProgress(level: number, xp: number): number {
   const xpNeeded = Math.floor(XP_PER_LEVEL_BASE * Math.pow(1.5, level - 1));
-  const prevLevelXP = Math.floor(XP_PER_LEVEL_BASE * (Math.pow(1.5, level - 1) - 1) / 0.5);
+  const prevLevelXP = Math.floor((XP_PER_LEVEL_BASE * (Math.pow(1.5, level - 1) - 1)) / 0.5);
   const xpInCurrentLevel = xp - prevLevelXP;
   return Math.min(100, Math.max(0, (xpInCurrentLevel / xpNeeded) * 100));
 }
 
 export function getStreakBadge(streak: number): StreakBadge {
-  if (streak >= 60) return { color: 'bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 text-white', emoji: '👑', multiplier: 5 };
-  if (streak >= 30) return { color: 'bg-gradient-to-r from-purple-500 via-indigo-600 to-purple-600 text-white', emoji: '💎', multiplier: 4 };
-  if (streak >= 14) return { color: 'bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white', emoji: '🔥', multiplier: 3 };
-  if (streak >= 7) return { color: 'bg-gradient-to-r from-orange-400 via-amber-500 to-yellow-500 text-white', emoji: '⚡', multiplier: 2 };
-  if (streak >= 3) return { color: 'bg-gradient-to-r from-red-400 via-rose-500 to-pink-500 text-white', emoji: '⚡', multiplier: 1.5 };
-  return { color: 'bg-gradient-to-r from-slate-400 to-slate-500 text-white', emoji: '✨', multiplier: 1 };
+  if (streak >= 60)
+    return {
+      color: 'bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 text-white',
+      emoji: '👑',
+      multiplier: 5,
+    };
+  if (streak >= 30)
+    return {
+      color: 'bg-gradient-to-r from-purple-500 via-indigo-600 to-purple-600 text-white',
+      emoji: '💎',
+      multiplier: 4,
+    };
+  if (streak >= 14)
+    return {
+      color: 'bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white',
+      emoji: '🔥',
+      multiplier: 3,
+    };
+  if (streak >= 7)
+    return {
+      color: 'bg-gradient-to-r from-orange-400 via-amber-500 to-yellow-500 text-white',
+      emoji: '⚡',
+      multiplier: 2,
+    };
+  if (streak >= 3)
+    return {
+      color: 'bg-gradient-to-r from-red-400 via-rose-500 to-pink-500 text-white',
+      emoji: '⚡',
+      multiplier: 1.5,
+    };
+  return {
+    color: 'bg-gradient-to-r from-slate-400 to-slate-500 text-white',
+    emoji: '✨',
+    multiplier: 1,
+  };
 }
 
 export function getLevelGradient(level: number): string {
@@ -153,40 +216,43 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
     const profile = gameProfileData.gameProfile;
 
     // Transform achievements from server format
-    const achievements: Achievement[] = profile.achievements?.map((ua: any) => ({
-      id: ua.achievement.id,
-      title: ua.achievement.title,
-      description: ua.achievement.description,
-      icon: ua.achievement.icon,
-      unlocked: true,
-      unlockedAt: ua.unlockedAt ? new Date(ua.unlockedAt).getTime() : undefined,
-      points: ua.achievement.points,
-      category: ua.achievement.category,
-    })) || [];
+    const achievements: Achievement[] =
+      profile.achievements?.map((ua: AchievementResponse) => ({
+        id: ua.achievement.id,
+        title: ua.achievement.title,
+        description: ua.achievement.description,
+        icon: ua.achievement.icon,
+        unlocked: true,
+        unlockedAt: ua.unlockedAt ? new Date(ua.unlockedAt).getTime() : undefined,
+        points: ua.achievement.points,
+        category: ua.achievement.category as Achievement['category'],
+      })) || [];
 
     // Transform daily challenges from server format
-    const dailyChallenges: DailyChallenge[] = profile.dailyChallenges?.map((dc: any) => ({
-      id: dc.challenge.id,
-      title: dc.challenge.title,
-      description: dc.challenge.description,
-      target: dc.challenge.target,
-      current: dc.current,
-      completed: dc.completed,
-      reward: dc.challenge.reward,
-      icon: dc.challenge.icon,
-    })) || [];
+    const dailyChallenges: DailyChallenge[] =
+      profile.dailyChallenges?.map((dc: DailyChallengeResponse) => ({
+        id: dc.challenge.id,
+        title: dc.challenge.title,
+        description: dc.challenge.description,
+        target: dc.challenge.target,
+        current: dc.current,
+        completed: dc.completed,
+        reward: dc.challenge.reward,
+        icon: dc.challenge.icon,
+      })) || [];
 
     // Transform power-ups from server format
-    const powerUps: PowerUp[] = profile.activePowerUps?.map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      description: p.description,
-      icon: p.icon,
-      active: p.active,
-      multiplier: p.multiplier,
-      duration: p.duration,
-      expiresAt: p.expiresAt ? new Date(p.expiresAt).getTime() : undefined,
-    })) || [];
+    const powerUps: PowerUp[] =
+      profile.activePowerUps?.map((p: PowerUpResponse) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        icon: p.icon,
+        active: p.active,
+        multiplier: p.multiplier,
+        duration: p.duration ?? 0,
+        expiresAt: p.expiresAt ? new Date(p.expiresAt).getTime() : undefined,
+      })) || [];
 
     return {
       xp: profile.xp || 0,
@@ -291,9 +357,7 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <GamificationContext.Provider value={contextValue}>
-      {children}
-    </GamificationContext.Provider>
+    <GamificationContext.Provider value={contextValue}>{children}</GamificationContext.Provider>
   );
 }
 

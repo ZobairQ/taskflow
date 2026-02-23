@@ -5,38 +5,18 @@ import express from 'express';
 import http from 'http';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
+
+// Import validated configuration (validates at startup)
+import { PORT, CORS_ORIGIN } from './config';
+import { initSentry, captureException } from './utils/sentry';
 
 import { typeDefs } from './schema/typeDefs';
 import { resolvers } from './resolvers';
-import { Context } from './types/context';
+import { Context, createContext, prisma } from './types/context';
+import healthRoutes from './routes/health';
 
-const prisma = new PrismaClient();
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-
-interface JwtPayload {
-  userId: string;
-}
-
-const getContext = async ({ req }: { req: express.Request }): Promise<Context> => {
-  const token = req.headers.authorization?.replace('Bearer ', '') || '';
-
-  if (!token) {
-    return { prisma, user: null, userId: null };
-  }
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-    });
-    return { prisma, user, userId: decoded.userId };
-  } catch (error) {
-    return { prisma, user: null, userId: null };
-  }
-};
+// Initialize Sentry (no-op if SENTRY_DSN not set)
+initSentry();
 
 async function startServer() {
   const app = express();
@@ -50,33 +30,31 @@ async function startServer() {
 
   await server.start();
 
+  // Health check routes (before CORS for probe access)
+  app.use('/', healthRoutes);
+
   app.use(
     '/graphql',
     cors<cors.CorsRequest>({
-      origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+      origin: CORS_ORIGIN,
       credentials: true,
     }),
     bodyParser.json(),
     expressMiddleware(server, {
-      context: getContext,
+      context: createContext,
     })
   );
-
-  // Health check endpoint
-  app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-  });
-
-  const PORT = process.env.PORT || 4000;
 
   await new Promise<void>((resolve) => httpServer.listen({ port: PORT }, resolve));
 
   console.log(`Server ready at http://localhost:${PORT}/graphql`);
+  console.log(`Health checks available at http://localhost:${PORT}/health, /ready, /live`);
 }
 
 startServer()
   .catch((error) => {
     console.error('Error starting server:', error);
+    captureException(error);
     process.exit(1);
   })
   .finally(async () => {

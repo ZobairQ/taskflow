@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+build/
+dist/
+coverage/
+
+# Generated files
+*.generated.ts
+*.generated.tsx
+
+# Config files
+*.config.js
+
+# Logs
+logs/
+*.log
+
+# Cache
+.cache/
+.eslintcache
+
+# Prisma generated
+backend/node_modules/.prisma/
+backend/node_modules/@prisma/
+
+# Docker
+docker-compose.override.yml
+
+# OS files
+.DS_Store
+Thumbs.db

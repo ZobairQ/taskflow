@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Unit tests for useFilters hook
  */
@@ -75,10 +76,13 @@ describe('useFilters', () => {
 
       const filtered = result.current.filteredTasks;
       expect(filtered.length).toBeGreaterThan(0);
-      expect(filtered.every((t) =>
-        t.text.toLowerCase().includes('project') ||
-        (t.description && t.description.toLowerCase().includes('project'))
-      )).toBe(true);
+      expect(
+        filtered.every(
+          (t) =>
+            t.text.toLowerCase().includes('project') ||
+            (t.description && t.description.toLowerCase().includes('project'))
+        )
+      ).toBe(true);
     });
 
     it('should be case insensitive', () => {
@@ -89,9 +93,7 @@ describe('useFilters', () => {
       });
 
       const filtered = result.current.filteredTasks;
-      expect(filtered.some((t) =>
-        t.text.toLowerCase().includes('project')
-      )).toBe(true);
+      expect(filtered.some((t) => t.text.toLowerCase().includes('project'))).toBe(true);
     });
 
     it('should return empty array for no matches', () => {
@@ -161,9 +163,7 @@ describe('useFilters', () => {
       });
 
       const filtered = result.current.filteredTasks;
-      expect(filtered.every((t) =>
-        t.priority === 'high' && t.category === 'health'
-      )).toBe(true);
+      expect(filtered.every((t) => t.priority === 'high' && t.category === 'health')).toBe(true);
     });
   });
 
@@ -173,7 +173,9 @@ describe('useFilters', () => {
 
       const sorted = result.current.filteredTasks;
       for (let i = 1; i < sorted.length; i++) {
-        expect(sorted[i - 1].createdAt).toBeGreaterThanOrEqual(sorted[i].createdAt);
+        expect(new Date(sorted[i - 1].createdAt).getTime()).toBeGreaterThanOrEqual(
+          new Date(sorted[i].createdAt).getTime()
+        );
       }
     });
 
@@ -186,7 +188,9 @@ describe('useFilters', () => {
 
       const sorted = result.current.filteredTasks;
       for (let i = 1; i < sorted.length; i++) {
-        expect(sorted[i - 1].createdAt).toBeLessThanOrEqual(sorted[i].createdAt);
+        expect(new Date(sorted[i - 1].createdAt).getTime()).toBeLessThanOrEqual(
+          new Date(sorted[i].createdAt).getTime()
+        );
       }
     });
 

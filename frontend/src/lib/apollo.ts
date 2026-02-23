@@ -21,8 +21,8 @@ const authLink = setContext((_, { headers }) => {
 interface ErrorResponse {
   graphQLErrors?: ReadonlyArray<GraphQLFormattedError>;
   networkError?: Error | ServerError | null;
-  operation?: any;
-  forward?: any;
+  operation?: unknown;
+  forward?: unknown;
 }
 
 const errorLink = onError((errorResponse: ErrorResponse) => {
