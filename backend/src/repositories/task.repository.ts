@@ -5,6 +5,8 @@
 
 import { PrismaClient, Task, TaskStatus, TaskPriority } from '@prisma/client';
 import { BaseRepository } from './base.repository';
+import { PAGINATION_CONFIG } from '../config/constants';
+import { parseSubtasks, parseRecurrencePattern } from '../validators/task-extensions.validator';
 
 export interface TaskFilter {
   projectId?: string;
@@ -16,6 +18,17 @@ export interface TaskFilter {
   dueBefore?: Date;
   dueAfter?: Date;
   search?: string;
+}
+
+export interface PaginationOptions {
+  limit?: number;
+  offset?: number;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  hasMore: boolean;
 }
 
 export class TaskRepository extends BaseRepository<Task> {
@@ -37,19 +50,53 @@ export class TaskRepository extends BaseRepository<Task> {
   }
 
   /**
-   * Find all tasks for a project
+   * Find all tasks for a project with pagination
    */
-  async findByProject(projectId: string, userId: string): Promise<Task[]> {
-    return this.prisma.task.findMany({
-      where: { projectId, userId },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findByProject(
+    projectId: string,
+    userId: string,
+    pagination?: PaginationOptions
+  ): Promise<
+    PaginatedResult<Task & { project: { id: string; name: string; color: string } | null }>
+  > {
+    const limit = Math.min(
+      pagination?.limit || PAGINATION_CONFIG.DEFAULT_LIMIT,
+      PAGINATION_CONFIG.MAX_LIMIT
+    );
+    const offset = pagination?.offset || 0;
+
+    const [tasks, total] = await Promise.all([
+      this.prisma.task.findMany({
+        where: { projectId, userId },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+        include: {
+          project: {
+            select: { id: true, name: true, color: true },
+          },
+        },
+      }),
+      this.prisma.task.count({ where: { projectId, userId } }),
+    ]);
+
+    return {
+      items: tasks as any,
+      total,
+      hasMore: offset + limit < total,
+    };
   }
 
   /**
-   * Find all tasks for a user with optional filtering
+   * Find all tasks for a user with optional filtering and pagination
    */
-  async findByUser(userId: string, filter?: TaskFilter): Promise<Task[]> {
+  async findByUser(
+    userId: string,
+    filter?: TaskFilter,
+    pagination?: PaginationOptions
+  ): Promise<
+    PaginatedResult<Task & { project: { id: string; name: string; color: string } | null }>
+  > {
     const where: any = { userId };
 
     if (filter?.projectId) where.projectId = filter.projectId;
@@ -70,10 +117,32 @@ export class TaskRepository extends BaseRepository<Task> {
       ];
     }
 
-    return this.prisma.task.findMany({
-      where,
-      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
-    });
+    const limit = Math.min(
+      pagination?.limit || PAGINATION_CONFIG.DEFAULT_LIMIT,
+      PAGINATION_CONFIG.MAX_LIMIT
+    );
+    const offset = pagination?.offset || 0;
+
+    const [tasks, total] = await Promise.all([
+      this.prisma.task.findMany({
+        where,
+        orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+        take: limit,
+        skip: offset,
+        include: {
+          project: {
+            select: { id: true, name: true, color: true },
+          },
+        },
+      }),
+      this.prisma.task.count({ where }),
+    ]);
+
+    return {
+      items: tasks as any,
+      total,
+      hasMore: offset + limit < total,
+    };
   }
 
   /**
@@ -91,7 +160,7 @@ export class TaskRepository extends BaseRepository<Task> {
     subtasks?: any;
     isRecurring?: boolean;
     recurrencePattern?: any;
-  }): Promise<Task> {
+  }): Promise<Task & { project: { id: string; name: string; color: string } | null }> {
     return this.prisma.task.create({
       data: {
         text: data.text,
@@ -106,26 +175,46 @@ export class TaskRepository extends BaseRepository<Task> {
         isRecurring: data.isRecurring || false,
         recurrencePattern: data.recurrencePattern,
       },
-    });
+      include: {
+        project: {
+          select: { id: true, name: true, color: true },
+        },
+      },
+    }) as any;
   }
 
   /**
    * Update a task
    */
-  async update(id: string, data: Partial<Task>): Promise<Task> {
+  async update(
+    id: string,
+    data: Partial<Task>
+  ): Promise<Task & { project: { id: string; name: string; color: string } | null }> {
     return this.prisma.task.update({
       where: { id },
       data: data as any,
-    });
+      include: {
+        project: {
+          select: { id: true, name: true, color: true },
+        },
+      },
+    }) as any;
   }
 
   /**
    * Delete a task
    */
-  async delete(id: string): Promise<Task> {
+  async delete(
+    id: string
+  ): Promise<Task & { project: { id: string; name: string; color: string } | null }> {
     return this.prisma.task.delete({
       where: { id },
-    });
+      include: {
+        project: {
+          select: { id: true, name: true, color: true },
+        },
+      },
+    }) as any;
   }
 
   /**
@@ -150,7 +239,9 @@ export class TaskRepository extends BaseRepository<Task> {
   /**
    * Complete a task
    */
-  async complete(id: string): Promise<Task> {
+  async complete(
+    id: string
+  ): Promise<Task & { project: { id: string; name: string; color: string } | null }> {
     return this.prisma.task.update({
       where: { id },
       data: {
@@ -158,13 +249,20 @@ export class TaskRepository extends BaseRepository<Task> {
         status: TaskStatus.completed,
         completedAt: new Date(),
       },
-    });
+      include: {
+        project: {
+          select: { id: true, name: true, color: true },
+        },
+      },
+    }) as any;
   }
 
   /**
    * Uncomplete a task
    */
-  async uncomplete(id: string): Promise<Task> {
+  async uncomplete(
+    id: string
+  ): Promise<Task & { project: { id: string; name: string; color: string } | null }> {
     return this.prisma.task.update({
       where: { id },
       data: {
@@ -172,7 +270,12 @@ export class TaskRepository extends BaseRepository<Task> {
         status: TaskStatus.pending,
         completedAt: null,
       },
-    });
+      include: {
+        project: {
+          select: { id: true, name: true, color: true },
+        },
+      },
+    }) as any;
   }
 
   /**

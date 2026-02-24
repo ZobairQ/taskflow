@@ -27,7 +27,9 @@
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWxxbzB0eTMwMDAweDRucXFxNzZ1ajY4IiwiaWF0IjoxNzcxMzM2NTE5LCJleHAiOjE3NzEzMzc0MTl9.bBLnlOYDhMq2UMLmaIy_jWrJ_Mt92iyuhGYBx1auWlY\")",
       "Bash(__NEW_LINE_d72692baa98e1037__ curl -s http://localhost:4000/graphql -H \"Content-Type: application/json\" -H \"Authorization: Bearer $TOKEN\" -d '{\"\"query\"\": \"\"mutation { createProject\\(input: { name: \\\\\"\"Test Project\\\\\"\", description: \\\\\"\"A test project\\\\\"\" }\\) { id name description } }\"\"}')",
       "Bash(npx husky init:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(pkill:*)",
+      "Bash(ls:*)"
     ]
   }
 }

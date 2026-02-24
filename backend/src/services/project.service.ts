@@ -74,10 +74,15 @@ export class ProjectService {
       throw new UserInputError('Project not found');
     }
 
-    const updateData: any = {};
+    const updateData: {
+      name?: string;
+      description?: string;
+      color?: string;
+    } = {};
     if (updates.name !== undefined) updateData.name = updates.name;
-    if (updates.description !== undefined) updateData.description = updates.description;
-    if (updates.color !== undefined) updateData.color = updates.color;
+    if (updates.description !== undefined)
+      updateData.description = updates.description ?? undefined;
+    if (updates.color !== undefined) updateData.color = updates.color ?? undefined;
 
     const project = await this.projectRepo.update(id, updateData);
     logger.info('Project updated', { projectId: id, userId });

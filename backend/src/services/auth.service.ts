@@ -10,8 +10,9 @@ import { registerSchema, loginSchema } from '../validators/auth.validator';
 import { AuthenticationError, UserInputError } from '../utils/errors';
 import { createLogger } from '../utils/logger';
 import { JWT_SECRET, JWT_REFRESH_SECRET } from '../config';
+import { AUTH_CONFIG } from '../config/constants';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 
 const logger = createLogger('AuthService');
 
@@ -38,8 +39,11 @@ export class AuthService {
    * Generate access and refresh tokens
    */
   private generateTokens(userId: string): { token: string; refreshToken: string } {
-    const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: '15m' });
-    const refreshToken = jwt.sign({ userId }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
+    const accessOptions: SignOptions = { expiresIn: '15m' };
+    const refreshOptions: SignOptions = { expiresIn: '7d' };
+
+    const token = jwt.sign({ userId }, JWT_SECRET, accessOptions);
+    const refreshToken = jwt.sign({ userId }, JWT_REFRESH_SECRET, refreshOptions);
     return { token, refreshToken };
   }
 
@@ -57,8 +61,8 @@ export class AuthService {
       throw new UserInputError('User already exists with this email');
     }
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(validated.password, 10);
+    // Hash password using config
+    const passwordHash = await bcrypt.hash(validated.password, AUTH_CONFIG.BCRYPT_SALT_ROUNDS);
 
     // Create user
     const user = await this.userRepo.create({
@@ -139,6 +143,9 @@ export class AuthService {
         ...tokens,
       };
     } catch (error) {
+      logger.warn('Token refresh failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       throw new AuthenticationError('Invalid refresh token');
     }
   }
@@ -176,8 +183,8 @@ export class AuthService {
       throw new AuthenticationError('Invalid current password');
     }
 
-    // Hash and update new password
-    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    // Hash and update new password using config
+    const newPasswordHash = await bcrypt.hash(newPassword, AUTH_CONFIG.BCRYPT_SALT_ROUNDS);
     await this.userRepo.updatePassword(userId, newPasswordHash);
 
     logger.info('Password changed', { userId });

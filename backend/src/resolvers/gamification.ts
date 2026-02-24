@@ -31,17 +31,18 @@ export const gamificationResolvers = {
         where: { userId: user.id },
       });
 
-      const unlockedIds = new Set(userAchievements.map((ua) => ua.achievementId));
+      // Handle empty arrays gracefully
+      const unlockedIds = new Set((userAchievements ?? []).map((ua) => ua.achievementId));
 
       return definitions.map((def) => ({
         id: def.id,
-        title: def.title,
-        description: def.description,
-        icon: def.icon,
-        points: def.points,
-        category: def.category,
+        title: def.title ?? '',
+        description: def.description ?? '',
+        icon: def.icon ?? '',
+        points: def.points ?? 0,
+        category: def.category ?? 'general',
         unlocked: unlockedIds.has(def.id),
-        unlockedAt: userAchievements.find((ua) => ua.achievementId === def.id)?.unlockedAt,
+        unlockedAt: userAchievements?.find((ua) => ua.achievementId === def.id)?.unlockedAt ?? null,
       }));
     },
 
@@ -50,7 +51,7 @@ export const gamificationResolvers = {
         throw new AuthenticationError('Not authenticated');
       }
 
-      const targetDate = date || new Date();
+      const targetDate = date ? new Date(date) : new Date();
       targetDate.setHours(0, 0, 0, 0);
 
       const definitions = await prisma.dailyChallengeDefinition.findMany();
@@ -61,22 +62,26 @@ export const gamificationResolvers = {
         },
       });
 
-      return definitions.map((def) => {
-        const userChallenge = userChallenges.find((uc) => uc.challengeId === def.id);
+      // Handle null/undefined gracefully
+      const safeDefinitions = definitions ?? [];
+      const safeUserChallenges = userChallenges ?? [];
+
+      return safeDefinitions.map((def) => {
+        const userChallenge = safeUserChallenges.find((uc) => uc.challengeId === def.id);
 
         return {
-          id: userChallenge?.id || '',
+          id: userChallenge?.id ?? null,
           challenge: {
             id: def.id,
-            title: def.title,
-            description: def.description,
-            target: def.target,
-            reward: def.reward,
-            icon: def.icon,
+            title: def.title ?? '',
+            description: def.description ?? '',
+            target: def.target ?? 0,
+            reward: def.reward ?? 0,
+            icon: def.icon ?? '',
           },
-          current: userChallenge?.current || 0,
-          completed: userChallenge?.completed || false,
-          completedAt: userChallenge?.completedAt,
+          current: userChallenge?.current ?? 0,
+          completed: userChallenge?.completed ?? false,
+          completedAt: userChallenge?.completedAt ?? null,
         };
       });
     },
@@ -128,7 +133,7 @@ export const gamificationResolvers = {
     },
 
     dailyChallenges: async (parent: any, { date }: { date?: Date }, { prisma }: Context) => {
-      const targetDate = date || new Date();
+      const targetDate = date ? new Date(date) : new Date();
       targetDate.setHours(0, 0, 0, 0);
 
       const definitions = await prisma.dailyChallengeDefinition.findMany();
@@ -139,15 +144,19 @@ export const gamificationResolvers = {
         },
       });
 
-      return definitions.map((def) => {
-        const userChallenge = userChallenges.find((uc) => uc.challengeId === def.id);
+      // Handle null/undefined gracefully
+      const safeDefinitions = definitions ?? [];
+      const safeUserChallenges = userChallenges ?? [];
+
+      return safeDefinitions.map((def) => {
+        const userChallenge = safeUserChallenges.find((uc) => uc.challengeId === def.id);
 
         return {
-          id: userChallenge?.id || '',
+          id: userChallenge?.id ?? null,
           challenge: def,
-          current: userChallenge?.current || 0,
-          completed: userChallenge?.completed || false,
-          completedAt: userChallenge?.completedAt,
+          current: userChallenge?.current ?? 0,
+          completed: userChallenge?.completed ?? false,
+          completedAt: userChallenge?.completedAt ?? null,
         };
       });
     },

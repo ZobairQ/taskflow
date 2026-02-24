@@ -4,8 +4,11 @@
  */
 
 import { PrismaClient, User } from '@prisma/client';
+import { Response } from 'express';
 import { DataLoaders, createDataLoaders } from '../dataloaders';
-import { JWT_SECRET } from '../config';
+import { JWT_SECRET, JWT_REFRESH_SECRET } from '../config';
+import { AUTH_CONFIG } from '../config/constants';
+import { getTokensFromRequest } from '../utils/cookies';
 import jwt from 'jsonwebtoken';
 
 export interface Context {
@@ -13,6 +16,8 @@ export interface Context {
   user: User | null;
   userId: string | null;
   loaders: DataLoaders;
+  res: Response | null;
+  refreshToken: string | null;
 }
 
 export const prisma = new PrismaClient();
@@ -21,23 +26,30 @@ interface JwtPayload {
   userId: string;
 }
 
-export const createContext = async ({ req }: { req: any }): Promise<Context> => {
-  // Get the user token from the headers
-  const token = req.headers.authorization?.replace('Bearer ', '') || null;
+export const createContext = async ({
+  req,
+  res,
+}: {
+  req: any;
+  res?: Response;
+}): Promise<Context> => {
+  // Get tokens from cookies or Authorization header
+  const { accessToken, refreshToken } = getTokensFromRequest(req);
 
   let user: User | null = null;
   let userId: string | null = null;
 
-  if (token) {
+  if (accessToken) {
     try {
       // Verify JWT token and get user
-      const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+      const decoded = jwt.verify(accessToken, JWT_SECRET) as JwtPayload;
       userId = decoded.userId;
       user = await prisma.user.findUnique({
         where: { id: userId },
       });
-    } catch (error) {
+    } catch {
       // Token is invalid or expired - user remains null
+      // Could attempt to refresh using refresh token here
     }
   }
 
@@ -49,5 +61,7 @@ export const createContext = async ({ req }: { req: any }): Promise<Context> => 
     user,
     userId,
     loaders,
+    res: res || null,
+    refreshToken,
   };
 };

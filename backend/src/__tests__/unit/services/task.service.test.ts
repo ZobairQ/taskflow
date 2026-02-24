@@ -18,29 +18,43 @@ describe('TaskService', () => {
   });
 
   describe('getTasks', () => {
-    it('should return tasks for a user', async () => {
+    it('should return paginated tasks for a user', async () => {
       const userId = 'user-1';
-      const mockTasks = [createMockTask({ userId })];
+      const mockTasks = [
+        {
+          ...createMockTask({ userId }),
+          project: { id: 'project-1', name: 'Test Project', color: '#000' },
+        },
+      ];
 
       mockPrisma.task.findMany.mockResolvedValue(mockTasks);
+      mockPrisma.task.count.mockResolvedValue(1);
 
       const result = await service.getTasks(userId);
 
       expect(mockPrisma.task.findMany).toHaveBeenCalled();
-      expect(result).toEqual(mockTasks);
+      expect(result.items).toEqual(mockTasks);
+      expect(result.total).toBe(1);
+      expect(result.hasMore).toBe(false);
     });
 
     it('should apply filters when provided', async () => {
       const userId = 'user-1';
       const filter = { status: TaskStatus.pending };
-      const mockTasks = [createMockTask({ userId, status: TaskStatus.pending })];
+      const mockTasks = [
+        {
+          ...createMockTask({ userId, status: TaskStatus.pending }),
+          project: { id: 'project-1', name: 'Test Project', color: '#000' },
+        },
+      ];
 
       mockPrisma.task.findMany.mockResolvedValue(mockTasks);
+      mockPrisma.task.count.mockResolvedValue(1);
 
       const result = await service.getTasks(userId, filter);
 
       expect(mockPrisma.task.findMany).toHaveBeenCalled();
-      expect(result).toEqual(mockTasks);
+      expect(result.items).toEqual(mockTasks);
     });
   });
 
@@ -101,12 +115,15 @@ describe('TaskService', () => {
       };
 
       const mockProject = createMockProject({ id: 'project-1', userId });
-      const mockTask = createMockTask({
-        text: input.text,
-        projectId: input.projectId,
-        priority: input.priority,
-        userId,
-      });
+      const mockTask = {
+        ...createMockTask({
+          text: input.text,
+          projectId: input.projectId,
+          priority: input.priority,
+          userId,
+        }),
+        project: { id: 'project-1', name: 'Test Project', color: '#000' },
+      };
 
       mockPrisma.project.findFirst.mockResolvedValue(mockProject);
       mockPrisma.task.create.mockResolvedValue(mockTask);
@@ -143,7 +160,12 @@ describe('TaskService', () => {
         priority: TaskPriority.high,
       });
 
-      const completedTask = { ...mockTask, completed: true, status: TaskStatus.completed };
+      const completedTask = {
+        ...mockTask,
+        completed: true,
+        status: TaskStatus.completed,
+        project: { id: 'project-1', name: 'Test Project', color: '#000' },
+      };
       const mockGameProfile = {
         userId,
         xp: 50,
@@ -179,9 +201,13 @@ describe('TaskService', () => {
       const userId = 'user-1';
       const taskId = 'task-1';
       const mockTask = createMockTask({ id: taskId, userId });
+      const deletedTask = {
+        ...mockTask,
+        project: { id: 'project-1', name: 'Test Project', color: '#000' },
+      };
 
       mockPrisma.task.findFirst.mockResolvedValue(mockTask);
-      mockPrisma.task.delete.mockResolvedValue(mockTask);
+      mockPrisma.task.delete.mockResolvedValue(deletedTask);
 
       const result = await service.deleteTask(userId, taskId);
 
@@ -190,8 +216,13 @@ describe('TaskService', () => {
       });
       expect(mockPrisma.task.delete).toHaveBeenCalledWith({
         where: { id: taskId },
+        include: {
+          project: {
+            select: { id: true, name: true, color: true },
+          },
+        },
       });
-      expect(result).toEqual(mockTask);
+      expect(result).toEqual(deletedTask);
     });
   });
 

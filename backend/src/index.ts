@@ -8,6 +8,7 @@ import express from 'express';
 import http from 'http';
 import cors from 'cors';
 import bodyParser from 'body-parser';
+import cookieParser from 'cookie-parser';
 
 // Import validated configuration (validates at startup)
 import { PORT, CORS_ORIGIN } from './config';
@@ -35,6 +36,9 @@ async function startServer() {
 
   // Health check routes (before CORS for probe access)
   app.use('/', healthRoutes);
+
+  // Cookie parser middleware
+  app.use(cookieParser());
 
   app.use(
     '/graphql',

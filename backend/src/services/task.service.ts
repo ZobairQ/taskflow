@@ -4,10 +4,14 @@
  */
 
 import { PrismaClient, Task, TaskPriority, TaskStatus } from '@prisma/client';
-import { TaskRepository, TaskFilter } from '../repositories/task.repository';
+import { TaskRepository, TaskFilter, PaginatedResult } from '../repositories/task.repository';
 import { ProjectRepository } from '../repositories/project.repository';
 import { GamificationRepository } from '../repositories/gamification.repository';
-import { createTaskSchema, updateTaskSchema } from '../validators/task.validator';
+import {
+  createTaskSchema,
+  updateTaskSchema,
+  BulkUpdateTasksInput,
+} from '../validators/task.validator';
 import { UserInputError } from '../utils/errors';
 import { createLogger } from '../utils/logger';
 
@@ -34,7 +38,12 @@ export class TaskService {
   /**
    * Get all tasks for a user
    */
-  async getTasks(userId: string, filter?: TaskFilter): Promise<Task[]> {
+  async getTasks(
+    userId: string,
+    filter?: TaskFilter
+  ): Promise<
+    PaginatedResult<Task & { project: { id: string; name: string; color: string } | null }>
+  > {
     logger.debug('Getting tasks', { userId, filter });
     return this.taskRepo.findByUser(userId, filter);
   }
@@ -42,7 +51,12 @@ export class TaskService {
   /**
    * Get tasks for a specific project
    */
-  async getTasksByProject(userId: string, projectId: string): Promise<Task[]> {
+  async getTasksByProject(
+    userId: string,
+    projectId: string
+  ): Promise<
+    PaginatedResult<Task & { project: { id: string; name: string; color: string } | null }>
+  > {
     logger.debug('Getting tasks by project', { userId, projectId });
 
     const projectExists = await this.projectRepo.exists(projectId, userId);
@@ -105,12 +119,21 @@ export class TaskService {
       throw new UserInputError('Task not found');
     }
 
-    const updateData: any = {};
+    const updateData: {
+      text?: string;
+      description?: string;
+      priority?: TaskPriority;
+      status?: TaskStatus;
+      category?: string;
+      dueDate?: Date | null;
+      completed?: boolean;
+    } = {};
     if (updates.text !== undefined) updateData.text = updates.text;
-    if (updates.description !== undefined) updateData.description = updates.description;
-    if (updates.priority !== undefined) updateData.priority = updates.priority;
-    if (updates.status !== undefined) updateData.status = updates.status;
-    if (updates.category !== undefined) updateData.category = updates.category;
+    if (updates.description !== undefined)
+      updateData.description = updates.description ?? undefined;
+    if (updates.priority !== undefined) updateData.priority = updates.priority as TaskPriority;
+    if (updates.status !== undefined) updateData.status = updates.status as TaskStatus;
+    if (updates.category !== undefined) updateData.category = updates.category ?? undefined;
     if (updates.dueDate !== undefined)
       updateData.dueDate = updates.dueDate ? new Date(updates.dueDate) : null;
     if (updates.completed !== undefined) updateData.completed = updates.completed;
@@ -156,10 +179,27 @@ export class TaskService {
     const completedTask = await this.taskRepo.complete(taskId);
 
     const xpReward = XP_REWARDS[task.priority];
-    await Promise.all([
+
+    // Use Promise.allSettled to handle partial failures
+    // If gamification operations fail, we:
+    // 1) Log the error
+    // 2) Don't fail the overall operation
+    const gamificationResults = await Promise.allSettled([
       this.gameRepo.addXp(userId, xpReward),
       this.gameRepo.incrementTasksCompleted(userId),
     ]);
+
+    // Log any failures but continue with the operation
+    gamificationResults.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        logger.error('Failed to update gamification for completed task', {
+          userId,
+          taskId,
+          operation: index === 0 ? 'addXp' : 'incrementTasksCompleted',
+          error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+        });
+      }
+    });
 
     logger.info('Task completed', { taskId, userId, xpEarned: xpReward });
 
@@ -193,7 +233,7 @@ export class TaskService {
   async bulkUpdateTasks(
     userId: string,
     taskIds: string[],
-    updates: any
+    updates: BulkUpdateTasksInput['updates']
   ): Promise<{ count: number }> {
     logger.info('Bulk updating tasks', { userId, count: taskIds.length });
 
@@ -204,7 +244,11 @@ export class TaskService {
       }
     }
 
-    const result = await this.taskRepo.bulkUpdate(taskIds, updates);
+    const result = await this.taskRepo.bulkUpdate(taskIds, {
+      ...updates,
+      status: updates.status as TaskStatus | undefined,
+      priority: updates.priority as TaskPriority | undefined,
+    });
     logger.info('Bulk update complete', { count: result.count });
 
     return result;

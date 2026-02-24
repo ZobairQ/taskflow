@@ -24,7 +24,7 @@ const recurrencePatternSchema = z.object({
 const prioritySchema = z.enum(['low', 'medium', 'high']).default('medium');
 
 // Task status enum
-const statusSchema = z.enum(['pending', 'in_progress', 'completed', 'on_hold']).optional();
+const statusSchema = z.enum(['pending', 'in_progress', 'completed']).optional();
 
 // Create task schema
 export const createTaskSchema = z.object({
@@ -48,7 +48,7 @@ export const updateTaskSchema = z.object({
   text: z.string().min(1).max(500).optional(),
   description: z.string().max(5000).optional().nullable(),
   priority: z.enum(['low', 'medium', 'high']).optional(),
-  status: z.enum(['pending', 'in_progress', 'completed', 'on_hold']).optional(),
+  status: z.enum(['pending', 'in_progress', 'completed']).optional(),
   category: z.string().max(50).optional().nullable(),
   dueDate: z.string().datetime().optional().nullable(),
   completed: z.boolean().optional(),
@@ -64,7 +64,7 @@ export const bulkUpdateTasksSchema = z.object({
   taskIds: z.array(z.string()).min(1, 'At least one task ID is required'),
   updates: z.object({
     priority: z.enum(['low', 'medium', 'high']).optional(),
-    status: z.enum(['pending', 'in_progress', 'completed', 'on_hold']).optional(),
+    status: z.enum(['pending', 'in_progress', 'completed']).optional(),
     category: z.string().max(50).optional(),
     completed: z.boolean().optional(),
   }),
@@ -73,7 +73,7 @@ export const bulkUpdateTasksSchema = z.object({
 // Task filter schema
 export const taskFilterSchema = z.object({
   projectId: z.string().optional(),
-  status: z.enum(['pending', 'in_progress', 'completed', 'on_hold']).optional(),
+  status: z.enum(['pending', 'in_progress', 'completed']).optional(),
   priority: z.enum(['low', 'medium', 'high']).optional(),
   category: z.string().optional(),
   completed: z.boolean().optional(),

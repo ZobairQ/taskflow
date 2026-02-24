@@ -42,7 +42,12 @@ export function useAuth() {
   }
 
   // Query for current user
-  const { data: meData, loading: meLoading, refetch: refetchMe, error: meError } = useQuery<MeQueryResult>(GET_ME, {
+  const {
+    data: meData,
+    loading: meLoading,
+    refetch: refetchMe,
+    error: meError,
+  } = useQuery<MeQueryResult>(GET_ME, {
     skip: !isAuthenticated(),
   });
 
@@ -54,36 +59,62 @@ export function useAuth() {
     }
     if (meError) {
       // Token might be invalid, clear it
+      console.error('Auth query error:', meError);
       clearAuthToken();
       setUser(null);
+      localStorage.removeItem('user');
     }
   }, [meData, meError]);
 
   // Login mutation
-  const [loginMutation, { loading: loginLoading }] = useMutation<{ login: AuthPayload }, { input: LoginInput }>(LOGIN, {
+  const [loginMutation, { loading: loginLoading }] = useMutation<
+    { login: AuthPayload },
+    { input: LoginInput }
+  >(LOGIN, {
     onCompleted: (data) => {
+      if (!data?.login) {
+        setError('Login failed: No data returned');
+        return;
+      }
       const { token, refreshToken, user } = data.login;
+      if (!token || !user) {
+        setError('Login failed: Invalid response');
+        return;
+      }
       setAuthToken(token, refreshToken);
       setUser(user);
       localStorage.setItem('user', JSON.stringify(user));
       setError(null);
     },
     onError: (err) => {
-      setError(err.message);
+      console.error('Login error:', err);
+      setError(err.message || 'Login failed');
     },
   });
 
   // Register mutation
-  const [registerMutation, { loading: registerLoading }] = useMutation<{ register: AuthPayload }, { input: RegisterInput }>(REGISTER, {
+  const [registerMutation, { loading: registerLoading }] = useMutation<
+    { register: AuthPayload },
+    { input: RegisterInput }
+  >(REGISTER, {
     onCompleted: (data) => {
+      if (!data?.register) {
+        setError('Registration failed: No data returned');
+        return;
+      }
       const { token, refreshToken, user } = data.register;
+      if (!token || !user) {
+        setError('Registration failed: Invalid response');
+        return;
+      }
       setAuthToken(token, refreshToken);
       setUser(user);
       localStorage.setItem('user', JSON.stringify(user));
       setError(null);
     },
     onError: (err) => {
-      setError(err.message);
+      console.error('Registration error:', err);
+      setError(err.message || 'Registration failed');
     },
   });
 
@@ -92,12 +123,23 @@ export function useAuth() {
     onCompleted: () => {
       clearAuthToken();
       setUser(null);
+      localStorage.removeItem('user');
+      client.resetStore();
+    },
+    onError: (err) => {
+      // Still clear local state even if server logout fails
+      console.error('Logout error:', err);
+      clearAuthToken();
+      setUser(null);
+      localStorage.removeItem('user');
       client.resetStore();
     },
   });
 
   // Refresh token mutation
-  const [refreshTokenMutation] = useMutation<{ refreshToken: AuthPayload }, { token: string }>(REFRESH_TOKEN);
+  const [refreshTokenMutation] = useMutation<{ refreshToken: AuthPayload }, { token: string }>(
+    REFRESH_TOKEN
+  );
 
   // Initialize auth state
   useEffect(() => {
@@ -128,25 +170,50 @@ export function useAuth() {
   }, [refetchMe]);
 
   // Login function
-  const login = useCallback(async (email: string, password: string) => {
-    const result = await loginMutation({
-      variables: { input: { email, password } },
-    });
-    return result.data?.login;
-  }, [loginMutation]);
+  const login = useCallback(
+    async (email: string, password: string) => {
+      try {
+        const result = await loginMutation({
+          variables: { input: { email, password } },
+        });
+        return result.data?.login ?? null;
+      } catch (error) {
+        console.error('Login failed:', error);
+        return null;
+      }
+    },
+    [loginMutation]
+  );
 
   // Register function
-  const register = useCallback(async (email: string, password: string, name?: string) => {
-    const result = await registerMutation({
-      variables: { input: { email, password, name } },
-    });
-    return result.data?.register;
-  }, [registerMutation]);
+  const register = useCallback(
+    async (email: string, password: string, name?: string) => {
+      try {
+        const result = await registerMutation({
+          variables: { input: { email, password, name } },
+        });
+        return result.data?.register ?? null;
+      } catch (error) {
+        console.error('Registration failed:', error);
+        return null;
+      }
+    },
+    [registerMutation]
+  );
 
   // Logout function
   const logout = useCallback(async () => {
-    await logoutMutation();
-  }, [logoutMutation]);
+    try {
+      await logoutMutation();
+    } catch (error) {
+      // Still clear local state even if server logout fails
+      console.error('Logout failed:', error);
+      clearAuthToken();
+      setUser(null);
+      localStorage.removeItem('user');
+      client.resetStore();
+    }
+  }, [logoutMutation, client]);
 
   // Refresh token function
   const refreshAuthToken = useCallback(async () => {

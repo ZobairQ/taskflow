@@ -1,7 +1,15 @@
 import React, { createContext, useContext, useCallback, type ReactNode } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { GET_PROJECTS, GET_PROJECT, GET_PROJECT_STATS } from './graphql/queries';
-import { CREATE_PROJECT, UPDATE_PROJECT, DELETE_PROJECT, CREATE_TASK, UPDATE_TASK, DELETE_TASK, COMPLETE_TASK } from './graphql/mutations';
+import {
+  CREATE_PROJECT,
+  UPDATE_PROJECT,
+  DELETE_PROJECT,
+  CREATE_TASK,
+  UPDATE_TASK,
+  DELETE_TASK,
+  COMPLETE_TASK,
+} from './graphql/mutations';
 import { PROJECT_COLORS } from './constants/colors';
 import type { Task, Subtask } from './types';
 
@@ -33,7 +41,10 @@ export interface ProjectContextValue {
   error?: Error;
   createProject: (name: string, description: string) => Promise<Project | undefined>;
   deleteProject: (projectId: string) => Promise<void>;
-  addTodoToProject: (projectId: string, todo: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Task | undefined>;
+  addTodoToProject: (
+    projectId: string,
+    todo: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>
+  ) => Promise<Task | undefined>;
   updateTodoInProject: (projectId: string, updatedTodo: Task) => Promise<Task | undefined>;
   deleteTodoFromProject: (projectId: string, todoId: string) => Promise<void>;
   updateProjectStats: (projectId: string, completed: boolean) => void;
@@ -97,7 +108,7 @@ interface ProjectStatsQueryResult {
 // Helper to transform GraphQL data to local types
 const transformProjectsData = (data: ProjectsQueryResult['projects'] | undefined): Project[] => {
   if (!data) return [];
-  return data.map(p => ({
+  return data.map((p) => ({
     id: p.id,
     name: p.name,
     description: p.description,
@@ -106,7 +117,7 @@ const transformProjectsData = (data: ProjectsQueryResult['projects'] | undefined
     updatedAt: p.updatedAt,
     completedTodos: p.completedTodos,
     totalTodos: p.totalTodos,
-    todos: p.todos?.map(t => ({
+    todos: p.todos?.map((t) => ({
       ...t,
       status: t.status as Task['status'],
       priority: t.priority as Task['priority'],
@@ -169,97 +180,136 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const projects: Project[] = transformProjectsData(projectsData?.projects);
 
   // Create project
-  const createProject = useCallback(async (name: string, description: string): Promise<Project | undefined> => {
-    const color = PROJECT_COLORS[projects.length % PROJECT_COLORS.length];
-    const result = await createProjectMutation({
-      variables: {
-        input: {
-          name,
-          description,
-          color,
-        },
-      },
-    });
-    return result.data?.createProject;
-  }, [createProjectMutation, projects.length]);
+  const createProject = useCallback(
+    async (name: string, description: string): Promise<Project | undefined> => {
+      const color = PROJECT_COLORS[(projects?.length ?? 0) % PROJECT_COLORS.length];
+      try {
+        const result = await createProjectMutation({
+          variables: {
+            input: {
+              name,
+              description,
+              color,
+            },
+          },
+        });
+        return result.data?.createProject ?? undefined;
+      } catch (error) {
+        console.error('Failed to create project:', error);
+        return undefined;
+      }
+    },
+    [createProjectMutation, projects?.length]
+  );
 
   // Delete project
-  const deleteProject = useCallback(async (projectId: string): Promise<void> => {
-    await deleteProjectMutation({
-      variables: { id: projectId },
-    });
-  }, [deleteProjectMutation]);
+  const deleteProject = useCallback(
+    async (projectId: string): Promise<void> => {
+      try {
+        await deleteProjectMutation({
+          variables: { id: projectId },
+        });
+      } catch (error) {
+        console.error('Failed to delete project:', error);
+        throw error;
+      }
+    },
+    [deleteProjectMutation]
+  );
 
   // Add todo to project
-  const addTodoToProject = useCallback(async (
-    projectId: string,
-    todo: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>
-  ): Promise<Task | undefined> => {
-    const result = await createTaskMutation({
-      variables: {
-        input: {
-          text: todo.text,
-          description: todo.description || '',
-          priority: todo.priority || 'medium',
-          category: todo.category || 'general',
-          dueDate: todo.dueDate,
-          projectId,
-          subtasks: todo.subtasks?.map(s => ({
-            id: s.id,
-            text: s.text,
-            completed: s.completed,
-          })),
-        },
-      },
-    });
-    return result.data?.createTask;
-  }, [createTaskMutation]);
+  const addTodoToProject = useCallback(
+    async (
+      projectId: string,
+      todo: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>
+    ): Promise<Task | undefined> => {
+      try {
+        const result = await createTaskMutation({
+          variables: {
+            input: {
+              text: todo.text,
+              description: todo.description || '',
+              priority: todo.priority || 'medium',
+              category: todo.category || 'general',
+              dueDate: todo.dueDate,
+              projectId,
+              subtasks: todo.subtasks?.map((s) => ({
+                id: s.id,
+                text: s.text,
+                completed: s.completed,
+              })),
+            },
+          },
+        });
+        return result.data?.createTask ?? undefined;
+      } catch (error) {
+        console.error('Failed to create task:', error);
+        return undefined;
+      }
+    },
+    [createTaskMutation]
+  );
 
   // Update todo in project
-  const updateTodoInProject = useCallback(async (
-    _projectId: string,
-    updatedTodo: Task
-  ): Promise<Task | undefined> => {
-    const result = await updateTaskMutation({
-      variables: {
-        input: {
-          id: updatedTodo.id,
-          text: updatedTodo.text,
-          description: updatedTodo.description,
-          status: updatedTodo.status,
-          priority: updatedTodo.priority,
-          category: updatedTodo.category,
-          dueDate: updatedTodo.dueDate,
-          subtasks: updatedTodo.subtasks?.map(s => ({
-            id: s.id,
-            text: s.text,
-            completed: s.completed,
-          })),
-        },
-      },
-    });
-    return result.data?.updateTask;
-  }, [updateTaskMutation]);
+  const updateTodoInProject = useCallback(
+    async (_projectId: string, updatedTodo: Task): Promise<Task | undefined> => {
+      try {
+        const result = await updateTaskMutation({
+          variables: {
+            input: {
+              id: updatedTodo.id,
+              text: updatedTodo.text,
+              description: updatedTodo.description,
+              status: updatedTodo.status,
+              priority: updatedTodo.priority,
+              category: updatedTodo.category,
+              dueDate: updatedTodo.dueDate,
+              subtasks: updatedTodo.subtasks?.map((s) => ({
+                id: s.id,
+                text: s.text,
+                completed: s.completed,
+              })),
+            },
+          },
+        });
+        return result.data?.updateTask ?? undefined;
+      } catch (error) {
+        console.error('Failed to update task:', error);
+        return undefined;
+      }
+    },
+    [updateTaskMutation]
+  );
 
   // Delete todo from project
-  const deleteTodoFromProject = useCallback(async (
-    _projectId: string,
-    todoId: string
-  ): Promise<void> => {
-    await deleteTaskMutation({
-      variables: { id: todoId },
-    });
-  }, [deleteTaskMutation]);
+  const deleteTodoFromProject = useCallback(
+    async (_projectId: string, todoId: string): Promise<void> => {
+      try {
+        await deleteTaskMutation({
+          variables: { id: todoId },
+        });
+      } catch (error) {
+        console.error('Failed to delete task:', error);
+        throw error;
+      }
+    },
+    [deleteTaskMutation]
+  );
 
   // Complete todo
-  const completeTodo = useCallback(async (
-    _projectId: string,
-    todoId: string
-  ): Promise<void> => {
-    await completeTaskMutation({
-      variables: { id: todoId },
-    });
-  }, [completeTaskMutation]);
+  const completeTodo = useCallback(
+    async (_projectId: string, todoId: string): Promise<void> => {
+      try {
+        await completeTaskMutation({
+          variables: { id: todoId },
+        });
+      } catch (error) {
+        console.error('Failed to complete task:', error);
+        throw error;
+      }
+    },
+    [completeTaskMutation]
+  );
 
   // Update project stats (no-op with Apollo - stats come from server)
   const updateProjectStats = useCallback(() => {
@@ -267,19 +317,23 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Get single project
-  const getProject = useCallback((projectId: string): Project | undefined => {
-    return projects.find(p => p.id === projectId);
-  }, [projects]);
+  const getProject = useCallback(
+    (projectId: string): Project | undefined => {
+      return projects.find((p): p is Project => p?.id === projectId);
+    },
+    [projects]
+  );
 
   // Get total stats
   const getTotalStats = useCallback((): ProjectStats => {
     if (statsData?.projectStats) {
       return statsData.projectStats;
     }
-    // Fallback to calculating from projects
-    const totalProjects = projects.length;
-    const totalTodos = projects.reduce((acc, p) => acc + p.totalTodos, 0);
-    const totalCompleted = projects.reduce((acc, p) => acc + p.completedTodos, 0);
+    // Fallback to calculating from projects - handle null/undefined
+    const safeProjects = projects ?? [];
+    const totalProjects = safeProjects.length;
+    const totalTodos = safeProjects.reduce((acc, p) => acc + (p?.totalTodos ?? 0), 0);
+    const totalCompleted = safeProjects.reduce((acc, p) => acc + (p?.completedTodos ?? 0), 0);
     return {
       totalProjects,
       totalTodos,
@@ -303,11 +357,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     refetchProjects: () => refetchProjects(),
   };
 
-  return (
-    <ProjectContext.Provider value={contextValue}>
-      {children}
-    </ProjectContext.Provider>
-  );
+  return <ProjectContext.Provider value={contextValue}>{children}</ProjectContext.Provider>;
 }
 
 export function useProjects() {

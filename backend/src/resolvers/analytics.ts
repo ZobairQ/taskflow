@@ -1,5 +1,5 @@
 import { Context } from '../types/context';
-import { AuthenticationError } from '../utils/errors';
+import { AuthenticationError, UserInputError } from '../utils/errors';
 
 export const analyticsResolvers = {
   Query: {
@@ -12,8 +12,22 @@ export const analyticsResolvers = {
         throw new AuthenticationError('Not authenticated');
       }
 
+      // Validate date range
+      if (!dateRange?.start || !dateRange?.end) {
+        throw new UserInputError('Date range with start and end is required');
+      }
+
       const startDate = new Date(dateRange.start);
       const endDate = new Date(dateRange.end);
+
+      // Validate dates are valid
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        throw new UserInputError('Invalid date format in date range');
+      }
+
+      if (startDate > endDate) {
+        throw new UserInputError('Start date must be before end date');
+      }
 
       // Fetch tasks in date range
       const tasks = await prisma.task.findMany({
@@ -26,8 +40,9 @@ export const analyticsResolvers = {
         },
       });
 
-      // Fetch completed tasks
-      const completedTasks = tasks.filter((t) => t.completed);
+      // Fetch completed tasks - handle null/undefined
+      const safeTasks = tasks ?? [];
+      const completedTasks = safeTasks.filter((t) => t?.completed);
 
       // Fetch pomodoro sessions
       const sessions = await prisma.pomodoroSession.findMany({
@@ -43,9 +58,8 @@ export const analyticsResolvers = {
       // Calculate productivity metrics
       const totalTasksCreated = tasks.length;
       const totalTasksCompleted = completedTasks.length;
-      const completionRate = totalTasksCreated > 0
-        ? (totalTasksCompleted / totalTasksCreated) * 100
-        : 0;
+      const completionRate =
+        totalTasksCreated > 0 ? (totalTasksCompleted / totalTasksCreated) * 100 : 0;
 
       // Daily breakdown
       const dailyStats: Record<string, { created: number; completed: number }> = {};
@@ -65,6 +79,32 @@ export const analyticsResolvers = {
       const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
       const averageDaily = daysDiff > 0 ? totalTasksCompleted / daysDiff : 0;
 
+      // Guard against division by zero in daily stats
+      if (daysDiff <= 0) {
+        return {
+          productivity: {
+            totalTasksCreated: 0,
+            totalTasksCompleted: 0,
+            completionRate: 0,
+            averageDaily: 0,
+            mostProductiveDay: 'Monday',
+            mostProductiveHour: 9,
+            streakDays: 0,
+            dailyBreakdown: [],
+          },
+          timeTracking: {
+            totalFocusTime: 0,
+            averageSessionLength: 0,
+            sessionsCompleted: 0,
+            focusTimeByDay: [],
+            focusTimeByCategory: [],
+          },
+          categories: [],
+          priorities: [],
+          insights: ['Start tracking your tasks to see analytics!'],
+        };
+      }
+
       // Most productive day of week
       const dayCompletions: Record<string, number> = {};
       completedTasks.forEach((task) => {
@@ -73,8 +113,8 @@ export const analyticsResolvers = {
           dayCompletions[dayName] = (dayCompletions[dayName] || 0) + 1;
         }
       });
-      const mostProductiveDay = Object.entries(dayCompletions)
-        .sort((a, b) => b[1] - a[1])[0]?.[0] || 'Monday';
+      const mostProductiveDay =
+        Object.entries(dayCompletions).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Monday';
 
       // Most productive hour
       const hourCompletions: Record<number, number> = {};
@@ -84,10 +124,14 @@ export const analyticsResolvers = {
           hourCompletions[hour] = (hourCompletions[hour] || 0) + 1;
         }
       });
-      const mostProductiveHour = Object.entries(hourCompletions)
-        .sort((a, b) => (b[1] as number) - (a[1] as number))[0]?.[0]
-        ? parseInt(Object.entries(hourCompletions)
-            .sort((a, b) => (b[1] as number) - (a[1] as number))[0][0])
+      const mostProductiveHour = Object.entries(hourCompletions).sort(
+        (a, b) => (b[1] as number) - (a[1] as number)
+      )[0]?.[0]
+        ? parseInt(
+            Object.entries(hourCompletions).sort(
+              (a, b) => (b[1] as number) - (a[1] as number)
+            )[0][0]
+          )
         : 9;
 
       // Calculate streak
@@ -176,7 +220,9 @@ export const analyticsResolvers = {
       const insights: string[] = [];
 
       if (completionRate >= 80) {
-        insights.push(`High Completion Rate: You completed ${completionRate.toFixed(0)}% of your tasks this period!`);
+        insights.push(
+          `High Completion Rate: You completed ${completionRate.toFixed(0)}% of your tasks this period!`
+        );
       }
 
       if (streakDays >= 7) {
@@ -184,7 +230,9 @@ export const analyticsResolvers = {
       }
 
       if (totalFocusTime > 0) {
-        insights.push(`Focus Time: You logged ${Math.round(totalFocusTime / 60)} hours of focused work.`);
+        insights.push(
+          `Focus Time: You logged ${Math.round(totalFocusTime / 60)} hours of focused work.`
+        );
       }
 
       if (mostProductiveDay !== 'Monday') {
