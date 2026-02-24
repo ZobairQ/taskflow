@@ -10,7 +10,7 @@ import { GamificationProvider } from './GamificationContext';
 import { ProjectProvider } from './ProjectContext';
 import { TimerProvider } from './TimerContext';
 import { TemplateProvider } from './contexts/TemplateContext';
-import { ErrorBoundary, PageLoader } from './components/common';
+import { ErrorBoundary, PageLoader, ProtectedRoute } from './components/common';
 import { InstallPrompt, OfflineIndicator } from './components/pwa';
 import reportWebVitals from './reportWebVitals';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
@@ -18,13 +18,15 @@ import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 // Lazy load page components for code splitting
 const ProjectOverview = lazy(() => import('./pages/ProjectOverview'));
 const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
-const AnalyticsDashboard = lazy(() => import('./pages/AnalyticsPage').then(m => ({ default: m.AnalyticsDashboard })));
+const SettingsPage = lazy(() =>
+  import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage }))
+);
+const AnalyticsDashboard = lazy(() =>
+  import('./pages/AnalyticsPage').then((m) => ({ default: m.AnalyticsDashboard }))
+);
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
+const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
 root.render(
   <React.StrictMode>
@@ -42,10 +44,38 @@ root.render(
                       <Suspense fallback={<PageLoader message="Loading TaskFlow..." />}>
                         <Routes>
                           <Route path="/login" element={<LoginPage />} />
-                          <Route path="/" element={<ProjectOverview />} />
-                          <Route path="/project/:projectId" element={<ProjectDetail />} />
-                          <Route path="/settings" element={<SettingsPage />} />
-                          <Route path="/analytics" element={<AnalyticsDashboard />} />
+                          <Route
+                            path="/"
+                            element={
+                              <ProtectedRoute>
+                                <ProjectOverview />
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/project/:projectId"
+                            element={
+                              <ProtectedRoute>
+                                <ProjectDetail />
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/settings"
+                            element={
+                              <ProtectedRoute>
+                                <SettingsPage />
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/analytics"
+                            element={
+                              <ProtectedRoute>
+                                <AnalyticsDashboard />
+                              </ProtectedRoute>
+                            }
+                          />
                           <Route path="/projects" element={<Navigate to="/" replace />} />
                         </Routes>
                       </Suspense>

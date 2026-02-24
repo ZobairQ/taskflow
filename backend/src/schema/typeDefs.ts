@@ -86,6 +86,14 @@ export const typeDefs = gql`
     totalActive: Int!
   }
 
+  type TaskStats {
+    total: Int!
+    completed: Int!
+    pending: Int!
+    overdue: Int!
+    dueToday: Int!
+  }
+
   # ============================================================================
   # TASK TYPES
   # ============================================================================
@@ -386,6 +394,21 @@ export const typeDefs = gql`
     notificationSettings: NotificationSettingsInput
   }
 
+  input BulkUpdateTasksInput {
+    taskIds: [ID!]!
+    updates: UpdateTaskFieldsInput!
+  }
+
+  input UpdateTaskFieldsInput {
+    text: String
+    description: String
+    status: TaskStatus
+    priority: TaskPriority
+    category: String
+    dueDate: DateTime
+    completed: Boolean
+  }
+
   input SubtaskInput {
     id: ID
     text: String!
@@ -522,6 +545,9 @@ export const typeDefs = gql`
     tasks(projectId: ID, filter: TaskFilter): [Task!]!
     task(id: ID!): Task
     tasksByDate(date: DateTime!): [Task!]!
+    overdueTasks: [Task!]!
+    tasksDueToday: [Task!]!
+    taskStats: TaskStats!
 
     # Gamification
     gameProfile: GamificationProfile
@@ -567,8 +593,10 @@ export const typeDefs = gql`
     updateTask(input: UpdateTaskInput!): Task!
     deleteTask(id: ID!): Boolean!
     completeTask(id: ID!): Task!
+    uncompleteTask(id: ID!): Task!
     bulkCompleteTasks(ids: [ID!]!): BulkActionResult!
     bulkDeleteTasks(ids: [ID!]!): BulkActionResult!
+    bulkUpdateTasks(taskIds: [ID!]!, updates: UpdateTaskFieldsInput!): [Task!]!
 
     # Dependencies
     createDependency(input: CreateDependencyInput!): TaskDependency!

@@ -13,5 +13,6 @@ export * from './EmptyState';
 export * from './ErrorBoundary';
 export * from './FeatureErrorBoundary';
 export * from './PageLoader';
+export * from './ProtectedRoute';
 export * from './GlobalErrorFallback';
 export * from './CommandPalette';
