@@ -1,46 +1,279 @@
-# Getting Started with Create React App
+# TaskFlow
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A full-stack productivity platform with gamification features, built with React, Node.js, Apollo GraphQL, and PostgreSQL.
+
+## Features
+
+- Task management with priorities, categories, and due dates
+- Gamification system (XP, levels, streaks, achievements)
+- Pomodoro timer
+- Project organization
+- Template system for recurring tasks
+- Dark mode support
+- Real-time analytics
+
+## Tech Stack
+
+| Frontend      | Backend             |
+| ------------- | ------------------- |
+| React 18      | Node.js             |
+| TypeScript    | Apollo Server       |
+| Apollo Client | GraphQL             |
+| Tailwind CSS  | PostgreSQL (Prisma) |
+| DnD Kit       | Redis (optional)    |
+
+## Prerequisites
+
+- Node.js >= 20.0.0
+- PostgreSQL 14+
+- npm or yarn
+- (Optional) Redis for caching
+
+## Quick Start
+
+### 1. Clone and Install
+
+```bash
+git clone <repository-url>
+cd todo_app
+npm install
+```
+
+### 2. Set Up Environment Variables
+
+Copy the example environment file:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Edit `backend/.env` with your configuration:
+
+```env
+# Database
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/taskflow?schema=public"
+
+# Redis (optional)
+REDIS_URL="redis://localhost:6379"
+
+# JWT (minimum 32 characters)
+JWT_SECRET="your-super-secret-jwt-key-change-in-production"
+JWT_REFRESH_SECRET="your-super-secret-refresh-key-change-in-production"
+
+# Server
+PORT=4000
+NODE_ENV=development
+CORS_ORIGIN="http://localhost:3000"
+
+# Sentry (optional)
+SENTRY_DSN=""
+```
+
+### 3. Set Up Database
+
+```bash
+# Generate Prisma client
+npm run prisma:generate
+
+# Run migrations
+npm run prisma:migrate
+
+# (Optional) Seed database
+npm run db:seed
+```
+
+### 4. Start Development Server
+
+```bash
+# Start both frontend and backend
+npm run dev
+```
+
+- Frontend: http://localhost:3000
+- Backend GraphQL: http://localhost:4000/graphql
+- Health Check: http://localhost:4000/health
 
 ## Available Scripts
 
-In the project directory, you can run:
+### Root Level
 
-### `npm start`
+| Script              | Description                                         |
+| ------------------- | --------------------------------------------------- |
+| `npm run dev`       | Start both frontend and backend in development mode |
+| `npm run frontend`  | Start only the frontend                             |
+| `npm run backend`   | Start only the backend                              |
+| `npm run build`     | Build both workspaces for production                |
+| `npm run test`      | Run all tests                                       |
+| `npm run lint`      | Run ESLint                                          |
+| `npm run format`    | Format code with Prettier                           |
+| `npm run typecheck` | Run TypeScript type checking                        |
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+### Database Scripts
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+| Script                    | Description                    |
+| ------------------------- | ------------------------------ |
+| `npm run prisma:generate` | Generate Prisma client         |
+| `npm run prisma:migrate`  | Run database migrations        |
+| `npm run prisma:studio`   | Open Prisma Studio GUI         |
+| `npm run db:seed`         | Seed database with sample data |
 
-### `npm test`
+### Docker (Optional)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+# Start PostgreSQL and Redis
+npm run docker:up
 
-### `npm run build`
+# Stop containers
+npm run docker:down
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Project Structure
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```
+todo_app/
+├── frontend/                 # React frontend
+│   ├── src/
+│   │   ├── components/       # UI components
+│   │   ├── contexts/         # React contexts
+│   │   ├── hooks/            # Custom hooks
+│   │   ├── graphql/          # GraphQL queries/mutations
+│   │   ├── utils/            # Utility functions
+│   │   └── __tests__/        # Test files
+│   └── package.json
+│
+├── backend/                  # Node.js backend
+│   ├── src/
+│   │   ├── resolvers/        # GraphQL resolvers
+│   │   ├── schema/           # GraphQL type definitions
+│   │   ├── services/         # Business logic layer
+│   │   ├── repositories/     # Data access layer
+│   │   ├── validators/       # Input validation (Zod)
+│   │   ├── dataloaders/      # N+1 query prevention
+│   │   ├── routes/           # Express routes (health checks)
+│   │   ├── config/           # Configuration
+│   │   ├── utils/            # Utilities (logger, sentry)
+│   │   └── __tests__/        # Test files
+│   ├── prisma/               # Database schema
+│   └── package.json
+│
+├── .husky/                   # Git hooks
+├── .eslintrc.js              # Shared ESLint config
+├── .prettierrc               # Prettier config
+└── package.json              # Root package with workspaces
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Testing
 
-### `npm run eject`
+### Run All Tests
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+```bash
+npm run test
+```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Run Specific Test Suites
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+```bash
+# Backend tests
+cd backend && npm test
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+# Frontend tests
+cd frontend && npm test
+```
 
-## Learn More
+### Test Coverage
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- Backend: 53 tests (services, repositories, validators)
+- Frontend: 126 tests (components, hooks, utilities)
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Architecture
+
+### Backend Architecture
+
+```
+Request → Resolver → Service → Repository → Prisma → Database
+                ↓
+           DataLoader (caching)
+                ↓
+           Validators (Zod)
+```
+
+### Key Patterns
+
+- **Repository Pattern**: Data access abstraction
+- **Service Layer**: Business logic isolation
+- **DataLoader**: N+1 query prevention
+- **Input Validation**: Zod schemas for all inputs
+
+## Health Endpoints
+
+| Endpoint      | Purpose                                 |
+| ------------- | --------------------------------------- |
+| `GET /health` | Basic health check (uptime, timestamp)  |
+| `GET /ready`  | Readiness probe (database connectivity) |
+| `GET /live`   | Liveness probe (for Kubernetes)         |
+
+## Environment Variables Reference
+
+| Variable             | Required | Description                          |
+| -------------------- | -------- | ------------------------------------ |
+| `DATABASE_URL`       | Yes      | PostgreSQL connection string         |
+| `JWT_SECRET`         | Yes      | JWT signing secret (min 32 chars)    |
+| `JWT_REFRESH_SECRET` | Yes      | Refresh token secret (min 32 chars)  |
+| `PORT`               | No       | Server port (default: 4000)          |
+| `NODE_ENV`           | No       | Environment (development/production) |
+| `CORS_ORIGIN`        | No       | Allowed CORS origin                  |
+| `REDIS_URL`          | No       | Redis connection string              |
+| `SENTRY_DSN`         | No       | Sentry error tracking DSN            |
+| `LOG_LEVEL`          | No       | Log level (debug/info/warn/error)    |
+
+## Troubleshooting
+
+### Port Already in Use
+
+```bash
+# Kill process on port 3000
+lsof -ti:3000 | xargs kill -9
+
+# Kill process on port 4000
+lsof -ti:4000 | xargs kill -9
+```
+
+### Database Connection Issues
+
+1. Ensure PostgreSQL is running
+2. Check `DATABASE_URL` in `.env`
+3. Run `npm run prisma:migrate` to create tables
+
+### Module Not Found Errors
+
+```bash
+# Clean install
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### TypeScript Errors
+
+```bash
+# Regenerate Prisma client
+npm run prisma:generate
+
+# Check types
+npm run typecheck
+```
+
+## Contributing
+
+1. Create a feature branch
+2. Make changes with tests
+3. Run `npm run lint` and `npm run test`
+4. Submit a pull request
+
+Pre-commit hooks will automatically:
+
+- Format code with Prettier
+- Run linting checks
+
+## License
+
+MIT
