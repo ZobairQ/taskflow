@@ -66,7 +66,7 @@ interface ProjectsQueryResult {
     updatedAt: string;
     completedTodos: number;
     totalTodos: number;
-    todos?: Array<{
+    tasks?: Array<{
       id: string;
       text: string;
       description: string;
@@ -117,7 +117,7 @@ const transformProjectsData = (data: ProjectsQueryResult['projects'] | undefined
     updatedAt: p.updatedAt,
     completedTodos: p.completedTodos,
     totalTodos: p.totalTodos,
-    todos: p.todos?.map((t) => ({
+    todos: p.tasks?.map((t) => ({
       ...t,
       status: t.status as Task['status'],
       priority: t.priority as Task['priority'],

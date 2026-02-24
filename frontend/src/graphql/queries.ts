@@ -26,6 +26,28 @@ export const GET_PROJECTS = gql`
       updatedAt
       completedTodos
       totalTodos
+      tasks {
+        id
+        text
+        description
+        completed
+        status
+        priority
+        category
+        dueDate
+        createdAt
+        updatedAt
+        completedAt
+        startedAt
+        isRecurring
+        canStart
+        subtasks {
+          id
+          text
+          completed
+          createdAt
+        }
+      }
     }
   }
 `;
