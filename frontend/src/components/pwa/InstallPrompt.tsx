@@ -8,7 +8,9 @@ import { useTheme } from '../../ThemeContext';
 export const InstallPrompt: React.FC = () => {
   const { theme } = useTheme();
   const [showPrompt, setShowPrompt] = useState(false);
-  const deferredPromptRef = useRef<Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> } | null>(null);
+  const deferredPromptRef = useRef<
+    (Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> }) | null
+  >(null);
 
   useEffect(() => {
     // Check if already dismissed or installed
@@ -21,7 +23,10 @@ export const InstallPrompt: React.FC = () => {
 
     const handler = (e: Event) => {
       e.preventDefault();
-      deferredPromptRef.current = e as Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
+      deferredPromptRef.current = e as Event & {
+        prompt: () => Promise<void>;
+        userChoice: Promise<{ outcome: string }>;
+      };
       setShowPrompt(true);
     };
 
@@ -38,9 +43,8 @@ export const InstallPrompt: React.FC = () => {
     deferredPromptRef.current.prompt();
     const { outcome } = await deferredPromptRef.current.userChoice;
 
-    if (outcome === 'accepted') {
-      console.log('PWA installed');
-    }
+    // PWA installation handled
+    void outcome; // Explicitly void to indicate we're not using it
 
     deferredPromptRef.current = null;
     setShowPrompt(false);
@@ -55,16 +59,23 @@ export const InstallPrompt: React.FC = () => {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50 animate-in slide-in-from-bottom duration-300">
-      <div className={`rounded-2xl shadow-2xl overflow-hidden ${
-        theme === 'dark'
-          ? 'bg-gradient-to-r from-indigo-900 to-purple-900 border border-indigo-700'
-          : 'bg-gradient-to-r from-indigo-600 to-purple-600'
-      }`}>
+      <div
+        className={`rounded-2xl shadow-2xl overflow-hidden ${
+          theme === 'dark'
+            ? 'bg-gradient-to-r from-indigo-900 to-purple-900 border border-indigo-700'
+            : 'bg-gradient-to-r from-indigo-600 to-purple-600'
+        }`}
+      >
         <div className="p-4 text-white">
           <div className="flex items-start gap-3">
             <div className="p-2 bg-white/20 rounded-xl">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+                />
               </svg>
             </div>
             <div className="flex-1">
@@ -78,7 +89,12 @@ export const InstallPrompt: React.FC = () => {
               className="p-1 hover:bg-white/20 rounded-lg transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>

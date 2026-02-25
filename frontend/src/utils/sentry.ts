@@ -35,8 +35,6 @@ export function initSentry(): void {
         'ResizeObserver loop completed with undelivered notifications',
       ],
     });
-
-    console.log('Sentry initialized for frontend error monitoring');
   }
 }
 

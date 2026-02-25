@@ -2,12 +2,7 @@
  * Time tracking utility functions
  */
 
-import {
-  PomodoroSettings,
-  PomodoroPhase,
-  PomodoroSession,
-  TimerStats,
-} from '../types/timer.types';
+import { PomodoroSettings, PomodoroPhase, PomodoroSession, TimerStats } from '../types/timer.types';
 
 /**
  * Format seconds to MM:SS display
@@ -106,27 +101,21 @@ export function calculateTimerStats(sessions: PomodoroSession[]): TimerStats {
   const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   // Filter completed work sessions
-  const completedWorkSessions = sessions.filter(
-    (s) => s.type === 'work' && s.completed
-  );
+  const completedWorkSessions = sessions.filter((s) => s.type === 'work' && s.completed);
 
   // Today's minutes
   const todaySessions = completedWorkSessions.filter((s) => {
     const sessionDate = new Date(s.startTime);
     return sessionDate >= today;
   });
-  const todayMinutes = Math.round(
-    todaySessions.reduce((acc, s) => acc + s.duration, 0) / 60
-  );
+  const todayMinutes = Math.round(todaySessions.reduce((acc, s) => acc + s.duration, 0) / 60);
 
   // Week's minutes
   const weekSessions = completedWorkSessions.filter((s) => {
     const sessionDate = new Date(s.startTime);
     return sessionDate >= weekAgo;
   });
-  const weekMinutes = Math.round(
-    weekSessions.reduce((acc, s) => acc + s.duration, 0) / 60
-  );
+  const weekMinutes = Math.round(weekSessions.reduce((acc, s) => acc + s.duration, 0) / 60);
 
   // Calculate streak (consecutive days with at least one session)
   const sessionDays = new Set<string>();
@@ -174,9 +163,10 @@ export function generateSessionId(): string {
 export function playNotificationSound(): void {
   try {
     // Create a simple beep sound using Web Audio API
-    const audioContext = new (window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext)();
+    const audioContext = new (
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    )();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
 
@@ -189,9 +179,8 @@ export function playNotificationSound(): void {
 
     oscillator.start();
     oscillator.stop(audioContext.currentTime + 0.2);
-  } catch (e) {
-    // Audio not supported or blocked
-    console.log('Audio notification not available');
+  } catch {
+    // Audio not supported or blocked - fail silently
   }
 }
 

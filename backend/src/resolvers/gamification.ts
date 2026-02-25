@@ -1,9 +1,93 @@
 import { Context } from '../types/context';
-import { AuthenticationError } from '../utils/errors';
+import { AuthenticationError, UserInputError } from '../utils/errors';
+
+// Type definitions for resolver arguments
+export interface GameProfileArgs {
+  date?: Date;
+}
+
+export interface PowerUpArgs {
+  id: string;
+}
+
+export interface DateArgs {
+  date?: Date;
+}
+
+export interface AchievementParent {
+  userId: string;
+}
+
+export interface GamificationProfileParent {
+  userId: string;
+  level?: number;
+  xp?: number;
+  currentStreak?: number;
+  activePowerUps?: ActivePowerUp[];
+}
+
+// Available power-ups configuration
+const POWER_UPS = {
+  double_xp: {
+    id: 'double_xp',
+    name: 'Double XP',
+    description: 'Earn double XP for 1 hour',
+    icon: '⚡',
+    multiplier: 2.0,
+    duration: 60, // minutes
+    requiredLevel: 5,
+    rarity: 'common',
+  },
+  streak_shield: {
+    id: 'streak_shield',
+    name: 'Streak Shield',
+    description: 'Protect your streak for 24 hours',
+    icon: '🛡️',
+    multiplier: 1.0,
+    duration: 1440, // 24 hours in minutes
+    requiredLevel: 10,
+    rarity: 'rare',
+  },
+  focus_boost: {
+    id: 'focus_boost',
+    name: 'Focus Boost',
+    description: '1.5x XP for focus sessions',
+    icon: '🎯',
+    multiplier: 1.5,
+    duration: 120, // 2 hours
+    requiredLevel: 3,
+    rarity: 'common',
+  },
+  productivity_surge: {
+    id: 'productivity_surge',
+    name: 'Productivity Surge',
+    description: '3x XP for completing high priority tasks',
+    icon: '🚀',
+    multiplier: 3.0,
+    duration: 30,
+    requiredLevel: 15,
+    rarity: 'epic',
+  },
+};
+
+type PowerUpId = keyof typeof POWER_UPS;
+type ActivePowerUp = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  active: boolean;
+  multiplier: number;
+  duration: number;
+  expiresAt: string | null;
+  activatedAt: string;
+  requiredLevel: number;
+  rarity: string;
+};
 
 export const gamificationResolvers = {
   Query: {
-    gameProfile: async (_: any, __: any, { user, prisma }: Context) => {
+    gameProfile: async (_: unknown, __: unknown, { user, prisma }: Context) => {
       if (!user) {
         throw new AuthenticationError('Not authenticated');
       }
@@ -21,7 +105,7 @@ export const gamificationResolvers = {
       return profile;
     },
 
-    achievements: async (_: any, __: any, { user, prisma }: Context) => {
+    achievements: async (_: unknown, __: unknown, { user, prisma }: Context) => {
       if (!user) {
         throw new AuthenticationError('Not authenticated');
       }
@@ -46,7 +130,7 @@ export const gamificationResolvers = {
       }));
     },
 
-    dailyChallenges: async (_: any, { date }: { date?: Date }, { user, prisma }: Context) => {
+    dailyChallenges: async (_: unknown, { date }: DateArgs, { user, prisma }: Context) => {
       if (!user) {
         throw new AuthenticationError('Not authenticated');
       }
@@ -87,7 +171,7 @@ export const gamificationResolvers = {
     },
   },
   Mutation: {
-    activatePowerUp: async (_: any, { id }: { id: string }, { user, prisma }: Context) => {
+    activatePowerUp: async (_: unknown, { id }: PowerUpArgs, { user, prisma }: Context) => {
       if (!user) {
         throw new AuthenticationError('Not authenticated');
       }
@@ -100,13 +184,59 @@ export const gamificationResolvers = {
         throw new AuthenticationError('Profile not found');
       }
 
-      // TODO: Implement power-up activation logic
-      // This would update the activePowerUps JSON field
+      // Validate power-up exists
+      const powerUpConfig = POWER_UPS[id as PowerUpId];
+      if (!powerUpConfig) {
+        throw new UserInputError('Invalid power-up ID');
+      }
 
-      return profile;
+      // Check level requirement
+      if (profile.level < powerUpConfig.requiredLevel) {
+        throw new UserInputError(
+          `Requires level ${powerUpConfig.requiredLevel} to activate this power-up`
+        );
+      }
+
+      // Get current active power-ups
+      const currentPowerUps: ActivePowerUp[] = (profile.activePowerUps as ActivePowerUp[]) || [];
+
+      // Check if already active
+      const existingIndex = currentPowerUps.findIndex((p) => p.id === id);
+      if (existingIndex !== -1 && currentPowerUps[existingIndex].active) {
+        throw new UserInputError('Power-up is already active');
+      }
+
+      // Calculate expiration time
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + powerUpConfig.duration * 60 * 1000);
+
+      // Create activated power-up
+      const activatedPowerUp: ActivePowerUp = {
+        ...powerUpConfig,
+        active: true,
+        expiresAt: expiresAt.toISOString(),
+        activatedAt: now.toISOString(),
+      };
+
+      // Update or add the power-up
+      let updatedPowerUps: ActivePowerUp[];
+      if (existingIndex !== -1) {
+        updatedPowerUps = [...currentPowerUps];
+        updatedPowerUps[existingIndex] = activatedPowerUp;
+      } else {
+        updatedPowerUps = [...currentPowerUps, activatedPowerUp];
+      }
+
+      // Save to database
+      const updatedProfile = await prisma.gamificationProfile.update({
+        where: { userId: user.id },
+        data: { activePowerUps: updatedPowerUps },
+      });
+
+      return updatedProfile;
     },
 
-    deactivatePowerUp: async (_: any, { id }: { id: string }, { user, prisma }: Context) => {
+    deactivatePowerUp: async (_: unknown, { id }: PowerUpArgs, { user, prisma }: Context) => {
       if (!user) {
         throw new AuthenticationError('Not authenticated');
       }
@@ -119,20 +249,36 @@ export const gamificationResolvers = {
         throw new AuthenticationError('Profile not found');
       }
 
-      // TODO: Implement power-up deactivation logic
+      // Get current active power-ups
+      const currentPowerUps: ActivePowerUp[] = (profile.activePowerUps as ActivePowerUp[]) || [];
 
-      return profile;
+      // Find and deactivate the power-up
+      const powerUpIndex = currentPowerUps.findIndex((p) => p.id === id);
+      if (powerUpIndex === -1) {
+        throw new UserInputError('Power-up not found');
+      }
+
+      // Remove the power-up from active list
+      const updatedPowerUps = currentPowerUps.filter((p) => p.id !== id);
+
+      // Save to database
+      const updatedProfile = await prisma.gamificationProfile.update({
+        where: { userId: user.id },
+        data: { activePowerUps: updatedPowerUps },
+      });
+
+      return updatedProfile;
     },
   },
   GamificationProfile: {
-    achievements: async (parent: any, _: any, { prisma }: Context) => {
+    achievements: async (parent: AchievementParent, _: unknown, { prisma }: Context) => {
       return prisma.userAchievement.findMany({
         where: { userId: parent.userId },
         include: { achievement: true },
       });
     },
 
-    dailyChallenges: async (parent: any, { date }: { date?: Date }, { prisma }: Context) => {
+    dailyChallenges: async (parent: AchievementParent, { date }: DateArgs, { prisma }: Context) => {
       const targetDate = date ? new Date(date) : new Date();
       targetDate.setHours(0, 0, 0, 0);
 
@@ -161,7 +307,7 @@ export const gamificationResolvers = {
       });
     },
 
-    streakBadge: (parent: any) => {
+    streakBadge: (parent: GamificationProfileParent) => {
       const streak = parent.currentStreak || 0;
       let color, emoji, multiplier;
 
@@ -190,7 +336,7 @@ export const gamificationResolvers = {
       return { color, emoji, multiplier };
     },
 
-    xpProgress: (parent: any) => {
+    xpProgress: (parent: GamificationProfileParent) => {
       const level = parent.level || 1;
       const xp = parent.xp || 0;
 
@@ -205,7 +351,7 @@ export const gamificationResolvers = {
       return Math.min(100, Math.max(0, (progressInLevel / xpNeededForNext) * 100));
     },
 
-    activePowerUps: (parent: any) => {
+    activePowerUps: (parent: GamificationProfileParent) => {
       if (!parent.activePowerUps) return [];
       return parent.activePowerUps;
     },

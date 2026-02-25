@@ -17,8 +17,8 @@ declare global {
 
 const isLocalhost = Boolean(
   window.location.hostname === 'localhost' ||
-    window.location.hostname === '[::1]' ||
-    window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/)
+  window.location.hostname === '[::1]' ||
+  window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/)
 );
 
 type Config = {
@@ -38,9 +38,6 @@ export function register(config?: Config): void {
 
       if (isLocalhost) {
         checkValidServiceWorker(swUrl, config);
-        navigator.serviceWorker.ready.then(() => {
-          console.log('[PWA] Running in development mode');
-        });
       } else {
         registerValidSW(swUrl, config);
       }
@@ -52,8 +49,6 @@ function registerValidSW(swUrl: string, config?: Config): void {
   navigator.serviceWorker
     .register(swUrl)
     .then((registration) => {
-      console.log('[PWA] Service Worker registered:', registration.scope);
-
       registration.onupdatefound = () => {
         const installingWorker = registration.installing;
         if (installingWorker == null) {
@@ -63,12 +58,10 @@ function registerValidSW(swUrl: string, config?: Config): void {
         installingWorker.onstatechange = () => {
           if (installingWorker.state === 'installed') {
             if (navigator.serviceWorker.controller) {
-              console.log('[PWA] New content available; please refresh.');
               if (config && config.onUpdate) {
                 config.onUpdate(registration);
               }
             } else {
-              console.log('[PWA] Content cached for offline use.');
               if (config && config.onSuccess) {
                 config.onSuccess(registration);
               }
@@ -100,7 +93,7 @@ function checkValidServiceWorker(swUrl: string, config?: Config): void {
       }
     })
     .catch(() => {
-      console.log('[PWA] No internet connection found. App is running in offline mode.');
+      // No internet connection - running in offline mode
     });
 }
 
@@ -118,8 +111,9 @@ export function unregister(): void {
 
 // Hook to check if app is installed
 export function isPWA(): boolean {
-  return window.matchMedia('(display-mode: standalone)').matches ||
-    window.navigator.standalone === true;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+  );
 }
 
 // Store for the deferred install prompt
@@ -157,7 +151,6 @@ export async function promptInstall(): Promise<boolean> {
   const { outcome } = await deferredPrompt.userChoice;
 
   if (outcome === 'accepted') {
-    console.log('[PWA] User accepted install');
     deferredPrompt = null;
     return true;
   }
@@ -173,6 +166,5 @@ window.addEventListener('beforeinstallprompt', (e: Event) => {
 
 // Listen for successful install
 window.addEventListener('appinstalled', () => {
-  console.log('[PWA] App installed successfully');
   deferredPrompt = null;
 });

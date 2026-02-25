@@ -92,13 +92,6 @@ root.render(
 );
 
 // Register service worker for PWA
-serviceWorkerRegistration.register({
-  onUpdate: () => {
-    console.log('[PWA] New version available! Please refresh.');
-  },
-  onSuccess: () => {
-    console.log('[PWA] App is ready for offline use!');
-  },
-});
+serviceWorkerRegistration.register();
 
 reportWebVitals();

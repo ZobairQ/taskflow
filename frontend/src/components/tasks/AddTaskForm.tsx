@@ -7,6 +7,7 @@ import { TaskPriority } from '../../types';
 import { RecurrencePattern } from '../../types/recurrence.types';
 import { CATEGORIES, Category } from '../../constants/categories';
 import { PRIORITIES } from '../../constants/priorities';
+import { VALIDATION_LIMITS } from '../../constants/config';
 import { countWords, estimateReadingTime } from '../../utils/taskUtils';
 import { getRecurrenceDescription } from '../../utils/recurrenceUtils';
 import { parseTask, hasNaturalLanguage } from '../../utils/nlp/taskParser';
@@ -29,12 +30,7 @@ interface AddTaskFormProps {
   showDescription?: boolean;
 }
 
-const MAX_DESCRIPTION_LENGTH = 1000;
-
-export const AddTaskForm: React.FC<AddTaskFormProps> = ({
-  onAdd,
-  showDescription = true,
-}) => {
+export const AddTaskForm: React.FC<AddTaskFormProps> = ({ onAdd, showDescription = true }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [inputDescription, setInputDescription] = useState('');
@@ -55,7 +51,8 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
   // Check if input has natural language patterns
   const hasNLP = hasNaturalLanguage(inputValue);
   const parsedTask = inputValue.trim().length > 2 ? parseTask(inputValue) : null;
-  const hasBreakdownSuggestions = inputValue.trim().length > 3 && getBreakdownSuggestions(inputValue).length > 0;
+  const hasBreakdownSuggestions =
+    inputValue.trim().length > 3 && getBreakdownSuggestions(inputValue).length > 0;
 
   const handleSubmit = () => {
     if (inputValue.trim() === '') return;
@@ -88,7 +85,7 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
       text,
       completed: false,
     }));
-    setSubtasks(prev => [...prev, ...formattedSubtasks]);
+    setSubtasks((prev) => [...prev, ...formattedSubtasks]);
   }, []);
 
   // Open breakdown modal
@@ -114,15 +111,17 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
-  const handleTemplateSelect = (templateData: Partial<{
-    text: string;
-    description: string;
-    priority: 'low' | 'medium' | 'high';
-    category: string;
-    subtasks: { id: string; text: string; completed: boolean }[];
-    recurrencePattern: RecurrencePattern;
-    dueDate: string;
-  }>) => {
+  const handleTemplateSelect = (
+    templateData: Partial<{
+      text: string;
+      description: string;
+      priority: 'low' | 'medium' | 'high';
+      category: string;
+      subtasks: { id: string; text: string; completed: boolean }[];
+      recurrencePattern: RecurrencePattern;
+      dueDate: string;
+    }>
+  ) => {
     setIsExpanded(true);
     if (templateData.text) setInputValue(templateData.text);
     if (templateData.description) setInputDescription(templateData.description);
@@ -159,8 +158,8 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
   };
 
   const descriptionLength = inputDescription.length;
-  const isNearLimit = descriptionLength > MAX_DESCRIPTION_LENGTH * 0.8;
-  const isAtLimit = descriptionLength >= MAX_DESCRIPTION_LENGTH;
+  const isNearLimit = descriptionLength > VALIDATION_LIMITS.TASK_DESCRIPTION_MAX * 0.8;
+  const isAtLimit = descriptionLength >= VALIDATION_LIMITS.TASK_DESCRIPTION_MAX;
 
   return (
     <>
@@ -172,7 +171,12 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
             className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-4 rounded-2xl font-semibold transition-all hover:shadow-lg hover:shadow-indigo-200 dark:hover:shadow-indigo-900/50 active:scale-[0.98] flex items-center justify-center gap-3 shadow-md"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
             </svg>
             <span className="text-lg">Add New Task</span>
           </button>
@@ -183,7 +187,12 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
             title="Choose from templates - Meeting prep, Bug reports, and more!"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+              />
             </svg>
             <span className="text-lg">Templates</span>
           </button>
@@ -196,8 +205,18 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
           {/* Header with collapse button */}
           <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-b border-slate-100 dark:border-slate-700">
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              <svg
+                className="w-5 h-5 text-indigo-600 dark:text-indigo-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
               </svg>
               New Task
             </h3>
@@ -206,8 +225,18 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
               className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
               title="Collapse"
             >
-              <svg className="w-5 h-5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-5 h-5 text-slate-600 dark:text-slate-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -221,8 +250,15 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
                     {/* Smart indicator */}
                     {hasNLP && (
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
-                        <span className="inline-flex items-center justify-center w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 rounded-full" title="Smart input detected">
-                          <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
+                        <span
+                          className="inline-flex items-center justify-center w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 rounded-full"
+                          title="Smart input detected"
+                        >
+                          <svg
+                            className="w-4 h-4 text-indigo-600 dark:text-indigo-400"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
                             <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
                           </svg>
                         </span>
@@ -248,40 +284,73 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
                 </div>
 
                 {/* Smart Input Parsed Preview */}
-                {parsedTask && (parsedTask.dueDate || parsedTask.priority || parsedTask.category) && (
-                  <div className="flex flex-wrap gap-2 px-1">
-                    {parsedTask.dueDate && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Due: {parsedTask.dueDate}
-                      </span>
-                    )}
-                    {parsedTask.priority && (
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
-                        parsedTask.priority === 'high'
-                          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                          : parsedTask.priority === 'medium'
-                          ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-                          : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                      }`}>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-                        </svg>
-                        {parsedTask.priority} priority
-                      </span>
-                    )}
-                    {parsedTask.category && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                        </svg>
-                        #{parsedTask.category}
-                      </span>
-                    )}
-                  </div>
-                )}
+                {parsedTask &&
+                  (parsedTask.dueDate || parsedTask.priority || parsedTask.category) && (
+                    <div className="flex flex-wrap gap-2 px-1">
+                      {parsedTask.dueDate && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                          Due: {parsedTask.dueDate}
+                        </span>
+                      )}
+                      {parsedTask.priority && (
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
+                            parsedTask.priority === 'high'
+                              ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                              : parsedTask.priority === 'medium'
+                                ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                          }`}
+                        >
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+                            />
+                          </svg>
+                          {parsedTask.priority} priority
+                        </span>
+                      )}
+                      {parsedTask.category && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full">
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                            />
+                          </svg>
+                          #{parsedTask.category}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                 {/* AI Breakdown Button */}
                 {hasBreakdownSuggestions && (
@@ -290,31 +359,63 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
                     className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-700 dark:text-amber-300 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-900/30 dark:hover:to-orange-900/30 transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                      />
                     </svg>
                     AI suggests breaking this into subtasks
-                    <span className="text-xs bg-amber-200 dark:bg-amber-800 px-1.5 py-0.5 rounded">Click to view</span>
+                    <span className="text-xs bg-amber-200 dark:bg-amber-800 px-1.5 py-0.5 rounded">
+                      Click to view
+                    </span>
                   </button>
                 )}
 
                 {/* Smart Hints (collapsible) */}
                 {showSmartHints && inputValue.length === 0 && (
                   <div className="flex items-start gap-2 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border border-indigo-100 dark:border-indigo-800">
-                    <svg className="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">Smart Input Tips</p>
+                      <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
+                        Smart Input Tips
+                      </p>
                       <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
-                        Type naturally! Try: <span className="font-mono bg-white dark:bg-slate-800 px-1 rounded">"Meeting tomorrow #work high priority"</span>
+                        Type naturally! Try:{' '}
+                        <span className="font-mono bg-white dark:bg-slate-800 px-1 rounded">
+                          "Meeting tomorrow #work high priority"
+                        </span>
                       </p>
                     </div>
                     <button
                       onClick={() => setShowSmartHints(false)}
                       className="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-200"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -326,18 +427,28 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
                 <div className="space-y-2">
                   {/* Decorative Header */}
                   <div className="flex items-center gap-2 mb-3 pt-2">
-                    <div className={`h-0.5 flex-1 transition-colors duration-300 ${inputDescription ? 'bg-gradient-to-r from-indigo-500 to-purple-500' : 'bg-slate-200 dark:bg-slate-600'}`} />
-                    <span className={`text-xs font-semibold uppercase tracking-wider transition-colors duration-300 ${inputDescription ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                    <div
+                      className={`h-0.5 flex-1 transition-colors duration-300 ${inputDescription ? 'bg-gradient-to-r from-indigo-500 to-purple-500' : 'bg-slate-200 dark:bg-slate-600'}`}
+                    />
+                    <span
+                      className={`text-xs font-semibold uppercase tracking-wider transition-colors duration-300 ${inputDescription ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`}
+                    >
                       Optional Details
                     </span>
-                    <div className={`h-0.5 flex-1 transition-colors duration-300 ${inputDescription ? 'bg-gradient-to-l from-indigo-500 to-purple-500' : 'bg-slate-200 dark:bg-slate-600'}`} />
+                    <div
+                      className={`h-0.5 flex-1 transition-colors duration-300 ${inputDescription ? 'bg-gradient-to-l from-indigo-500 to-purple-500' : 'bg-slate-200 dark:bg-slate-600'}`}
+                    />
                   </div>
 
                   {/* Description Textarea with Enhanced Features */}
                   <div className="relative">
                     <textarea
                       value={inputDescription}
-                      onChange={(e) => setInputDescription(e.target.value.slice(0, MAX_DESCRIPTION_LENGTH))}
+                      onChange={(e) =>
+                        setInputDescription(
+                          e.target.value.slice(0, VALIDATION_LIMITS.TASK_DESCRIPTION_MAX)
+                        )
+                      }
                       placeholder="Add context, notes, or steps to complete this task...
 
 💡 Tips:
@@ -349,21 +460,23 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
                         isAtLimit
                           ? 'border-rose-300 dark:border-rose-500 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:focus:ring-rose-900/50'
                           : isNearLimit
-                          ? 'border-amber-300 dark:border-amber-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 dark:focus:ring-amber-900/50'
-                          : 'border-slate-200 dark:border-slate-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/50'
+                            ? 'border-amber-300 dark:border-amber-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 dark:focus:ring-amber-900/50'
+                            : 'border-slate-200 dark:border-slate-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/50'
                       } outline-none`}
                     />
 
                     {/* Character Counter */}
                     {descriptionLength > 0 && (
-                      <div className={`absolute bottom-2 right-2 text-xs font-medium transition-colors ${
-                        isAtLimit
-                          ? 'text-rose-500'
-                          : isNearLimit
-                          ? 'text-amber-500'
-                          : 'text-slate-400 dark:text-slate-500'
-                      }`}>
-                        {descriptionLength}/{MAX_DESCRIPTION_LENGTH}
+                      <div
+                        className={`absolute bottom-2 right-2 text-xs font-medium transition-colors ${
+                          isAtLimit
+                            ? 'text-rose-500'
+                            : isNearLimit
+                              ? 'text-amber-500'
+                              : 'text-slate-400 dark:text-slate-500'
+                        }`}
+                      >
+                        {descriptionLength}/{VALIDATION_LIMITS.TASK_DESCRIPTION_MAX}
                       </div>
                     )}
                   </div>
@@ -373,14 +486,34 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
                     <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-1">
                       <div className="flex items-center gap-3">
                         <span className="flex items-center gap-1">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
                           </svg>
                           {countWords(inputDescription)} words
                         </span>
                         <span className="flex items-center gap-1">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
                           </svg>
                           {estimateReadingTime(inputDescription)}
                         </span>
@@ -458,17 +591,31 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      isRecurring
-                        ? 'bg-indigo-500 text-white'
-                        : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400'
-                    }`}>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <div
+                      className={`p-2 rounded-lg ${
+                        isRecurring
+                          ? 'bg-indigo-500 text-white'
+                          : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400'
+                      }`}
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
                       </svg>
                     </div>
                     <div className="text-left">
-                      <span className={`font-semibold ${isRecurring ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}>
+                      <span
+                        className={`font-semibold ${isRecurring ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}
+                      >
                         Make this a recurring task
                       </span>
                       {isRecurring && recurrencePattern && (
@@ -483,9 +630,11 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
                       )}
                     </div>
                   </div>
-                  <div className={`flex items-center gap-2 ${
-                    isRecurring ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'
-                  }`}>
+                  <div
+                    className={`flex items-center gap-2 ${
+                      isRecurring ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'
+                    }`}
+                  >
                     {isRecurring && (
                       <button
                         onClick={(e) => {
@@ -497,12 +646,16 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
                         {showRecurrencePicker ? 'Hide' : 'Edit'}
                       </button>
                     )}
-                    <div className={`w-10 h-6 rounded-full transition-all ${
-                      isRecurring ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-600'
-                    }`}>
-                      <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform mt-0.5 ${
-                        isRecurring ? 'translate-x-4.5 ml-0.5' : 'translate-x-0.5'
-                      }`} />
+                    <div
+                      className={`w-10 h-6 rounded-full transition-all ${
+                        isRecurring ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-600'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform mt-0.5 ${
+                          isRecurring ? 'translate-x-4.5 ml-0.5' : 'translate-x-0.5'
+                        }`}
+                      />
                     </div>
                   </div>
                 </button>
@@ -524,7 +677,7 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
                 <div className="pt-3 border-t border-slate-50 dark:border-slate-700 mt-2">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                      Subtasks ({subtasks.filter(s => s.completed).length}/{subtasks.length})
+                      Subtasks ({subtasks.filter((s) => s.completed).length}/{subtasks.length})
                     </span>
                     <button
                       onClick={() => setSubtasks([])}
@@ -535,15 +688,30 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
                   </div>
                   <div className="space-y-1 max-h-32 overflow-y-auto">
                     {subtasks.map((st, index) => (
-                      <div key={st.id} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                        <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center ${
-                          st.completed
-                            ? 'bg-indigo-500 border-indigo-500 text-white'
-                            : 'border-slate-300 dark:border-slate-500'
-                        }`}>
+                      <div
+                        key={st.id}
+                        className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300"
+                      >
+                        <div
+                          className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center ${
+                            st.completed
+                              ? 'bg-indigo-500 border-indigo-500 text-white'
+                              : 'border-slate-300 dark:border-slate-500'
+                          }`}
+                        >
                           {st.completed && (
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            <svg
+                              className="w-3 h-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={3}
+                                d="M5 13l4 4L19 7"
+                              />
                             </svg>
                           )}
                         </div>
@@ -560,10 +728,16 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
               {showDescription && !inputValue && (
                 <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-50 dark:border-slate-700">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                   <span>
-                    <strong>Pro tip:</strong> Use Shift+Enter to add a new line, Enter to submit task
+                    <strong>Pro tip:</strong> Use Shift+Enter to add a new line, Enter to submit
+                    task
                   </span>
                 </div>
               )}
@@ -576,7 +750,12 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
                     className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+                      />
                     </svg>
                     Choose from templates
                   </button>
@@ -601,7 +780,7 @@ export const AddTaskForm: React.FC<AddTaskFormProps> = ({
           taskText={taskBreakdown.taskText}
           onApply={taskBreakdown.handleApply}
           onClose={taskBreakdown.close}
-          existingSubtasks={subtasks.map(s => s.text)}
+          existingSubtasks={subtasks.map((s) => s.text)}
         />
       )}
     </>

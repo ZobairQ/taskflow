@@ -111,14 +111,33 @@ export class ProjectService {
    * Get project statistics
    */
   async getProjectStats(userId: string): Promise<{
-    total: number;
-    active: number;
+    totalProjects: number;
+    totalTodos: number;
+    totalCompleted: number;
+    totalActive: number;
   }> {
-    const total = await this.projectRepo.countByUser(userId);
+    const projects = await this.projectRepo.findByUser(userId);
+    const totalProjects = projects.length;
+
+    // Get task counts for all projects
+    const taskCounts = await Promise.all(
+      projects.map(async (project) => {
+        const stats = await this.projectRepo.findByIdWithStats(project.id, userId);
+        return {
+          total: stats?.taskCount ?? 0,
+          completed: stats?.completedCount ?? 0,
+        };
+      })
+    );
+
+    const totalTodos = taskCounts.reduce((sum, p) => sum + p.total, 0);
+    const totalCompleted = taskCounts.reduce((sum, p) => sum + p.completed, 0);
 
     return {
-      total,
-      active: total,
+      totalProjects,
+      totalTodos,
+      totalCompleted,
+      totalActive: totalTodos - totalCompleted,
     };
   }
 }

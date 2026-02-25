@@ -155,5 +155,62 @@ export const taskResolvers = {
   },
 
   // Task field resolvers
-  Task: {},
+  Task: {
+    project: async (parent: any, _: any, { prisma }: Context) => {
+      return prisma.task
+        .findUnique({
+          where: { id: parent.id },
+          include: { project: true },
+        })
+        .project();
+    },
+
+    user: async (parent: any, _: any, { prisma }: Context) => {
+      return prisma.task
+        .findUnique({
+          where: { id: parent.id },
+          include: { user: true },
+        })
+        .user();
+    },
+
+    subtasks: (parent: any) => {
+      // subtasks is stored as JSON, return it directly or empty array
+      if (!parent.subtasks) return [];
+      return parent.subtasks;
+    },
+
+    canStart: (parent: any) => {
+      // A task can be started if it's not completed and not in progress
+      return !parent.completed && parent.status !== 'in_progress';
+    },
+
+    dependencies: async (parent: any, _: any, { prisma }: Context) => {
+      return prisma.taskDependency.findMany({
+        where: { successorTaskId: parent.id },
+      });
+    },
+
+    dependents: async (parent: any, _: any, { prisma }: Context) => {
+      return prisma.taskDependency.findMany({
+        where: { predecessorTaskId: parent.id },
+      });
+    },
+
+    recurrencePattern: (parent: any) => {
+      return parent.recurrencePattern || null;
+    },
+
+    recurrenceInstances: (parent: any) => {
+      return parent.recurrenceInstances || [];
+    },
+
+    notificationSettings: (parent: any) => {
+      // Default notification settings if null
+      if (!parent.notificationSettings) {
+        return { enabled: false, timing: [], type: 'browser' };
+      }
+      return parent.notificationSettings;
+    },
+  },
 };

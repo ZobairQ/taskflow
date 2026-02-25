@@ -54,42 +54,10 @@ export const LOGOUT = gql`
   }
 `;
 
-export const UPDATE_USER_PROFILE = gql`
-  mutation UpdateUserProfile($name: String, $avatar: String) {
-    updateUserProfile(name: $name, avatar: $avatar) {
-      id
-      email
-      name
-      avatar
-    }
-  }
-`;
-
-export const CHANGE_PASSWORD = gql`
-  mutation ChangePassword($oldPassword: String!, $newPassword: String!) {
-    changePassword(oldPassword: $oldPassword, newPassword: $newPassword)
-  }
-`;
-
 // Project Mutations
 export const CREATE_PROJECT = gql`
   mutation CreateProject($input: CreateProjectInput!) {
     createProject(input: $input) {
-      id
-      name
-      description
-      color
-      createdAt
-      updatedAt
-      completedTodos
-      totalTodos
-    }
-  }
-`;
-
-export const UPDATE_PROJECT = gql`
-  mutation UpdateProject($input: UpdateProjectInput!) {
-    updateProject(input: $input) {
       id
       name
       description
@@ -181,58 +149,6 @@ export const COMPLETE_TASK = gql`
       status
       completedAt
     }
-  }
-`;
-
-export const BULK_COMPLETE_TASKS = gql`
-  mutation BulkCompleteTasks($ids: [ID!]!) {
-    bulkCompleteTasks(ids: $ids) {
-      success
-      processedCount
-      failedCount
-      errors {
-        taskId
-        error
-      }
-    }
-  }
-`;
-
-export const BULK_DELETE_TASKS = gql`
-  mutation BulkDeleteTasks($ids: [ID!]!) {
-    bulkDeleteTasks(ids: $ids) {
-      success
-      processedCount
-      failedCount
-      errors {
-        taskId
-        error
-      }
-    }
-  }
-`;
-
-// Task Dependency Mutations
-export const CREATE_DEPENDENCY = gql`
-  mutation CreateDependency($input: CreateDependencyInput!) {
-    createDependency(input: $input) {
-      id
-      type
-      predecessorTask {
-        id
-        text
-      }
-      successorTask {
-        id
-        text
-      }
-    }
-  }
-`;
-
-export const DELETE_DEPENDENCY = gql`
-  mutation DeleteDependency($id: ID!) {
-    deleteDependency(id: $id)
   }
 `;
 

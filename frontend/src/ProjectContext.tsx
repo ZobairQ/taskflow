@@ -1,14 +1,12 @@
 import React, { createContext, useContext, useCallback, type ReactNode } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
-import { GET_PROJECTS, GET_PROJECT, GET_PROJECT_STATS } from './graphql/queries';
+import { useQuery, useMutation, useApolloClient } from '@apollo/client/react';
+import { GET_PROJECTS, GET_PROJECT_STATS } from './graphql/queries';
 import {
   CREATE_PROJECT,
-  UPDATE_PROJECT,
   DELETE_PROJECT,
   CREATE_TASK,
   UPDATE_TASK,
   DELETE_TASK,
-  COMPLETE_TASK,
 } from './graphql/mutations';
 import { PROJECT_COLORS } from './constants/colors';
 import type { Task, Subtask } from './types';
@@ -126,6 +124,8 @@ const transformProjectsData = (data: ProjectsQueryResult['projects'] | undefined
 };
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
+  const client = useApolloClient();
+
   // Queries
   const {
     data: projectsData,
@@ -161,7 +161,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   });
 
   const [createTaskMutation] = useMutation<CreateTaskResult>(CREATE_TASK, {
-    refetchQueries: [{ query: GET_PROJECTS }],
+    refetchQueries: [{ query: GET_PROJECTS }, { query: GET_PROJECT_STATS }],
   });
 
   const [updateTaskMutation] = useMutation<UpdateTaskResult>(UPDATE_TASK, {
@@ -169,10 +169,6 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   });
 
   const [deleteTaskMutation] = useMutation(DELETE_TASK, {
-    refetchQueries: [{ query: GET_PROJECTS }, { query: GET_PROJECT_STATS }],
-  });
-
-  const [completeTaskMutation] = useMutation(COMPLETE_TASK, {
     refetchQueries: [{ query: GET_PROJECTS }, { query: GET_PROJECT_STATS }],
   });
 
@@ -241,13 +237,15 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             },
           },
         });
+        // Force refetch of all active queries to update the UI immediately
+        await client.refetchQueries({ include: 'active' });
         return result.data?.createTask ?? undefined;
       } catch (error) {
         console.error('Failed to create task:', error);
         return undefined;
       }
     },
-    [createTaskMutation]
+    [createTaskMutation, client]
   );
 
   // Update todo in project
@@ -294,21 +292,6 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       }
     },
     [deleteTaskMutation]
-  );
-
-  // Complete todo
-  const completeTodo = useCallback(
-    async (_projectId: string, todoId: string): Promise<void> => {
-      try {
-        await completeTaskMutation({
-          variables: { id: todoId },
-        });
-      } catch (error) {
-        console.error('Failed to complete task:', error);
-        throw error;
-      }
-    },
-    [completeTaskMutation]
   );
 
   // Update project stats (no-op with Apollo - stats come from server)

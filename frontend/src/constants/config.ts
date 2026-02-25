@@ -28,8 +28,8 @@ export const STORAGE_KEYS = {
 // UI Configuration
 export const UI_CONFIG = {
   TOAST_DURATION: 5000, // 5 seconds
-  DEbounceDelay: 100, // 100ms for input debouncing
-  DebounceDelayLong: 300, // 300ms for API calls
+  DEBOUNCE_DELAY: 100, // 100ms for input debouncing
+  DEBOUNCE_DELAY_LONG: 300, // 300ms for API calls
 } as const;
 
 // Pagination defaults
@@ -44,7 +44,7 @@ export const PAGINATION_CONFIG = {
 // Validation limits
 export const VALIDATION_LIMITS = {
   TASK_TEXT_MAX: 500,
-  TASK_DESCRIPTION_MAX: 2000,
+  TASK_DESCRIPTION_MAX: 5000,
   PROJECT_NAME_MAX: 100,
   PROJECT_DESCRIPTION_MAX: 500,
   USER_NAME_MAX: 100,
